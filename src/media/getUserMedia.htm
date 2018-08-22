@@ -7,7 +7,9 @@
 <body>
 <h1>navigator.getUserMedia (旧版音视频接口)</h1>
 
-<input type="button" title="openMedia(打开媒体设备)" value="openMedia" onclick="openMedia();" /><br />  
+<input type="button" title="openMedia(打开媒体设备)" value="openMedia" onclick="openMedia();" />
+&nbsp; <input type="button" title="closeMedia(关闭媒体设备)" value="closeMedia" onclick="closeMedia();" />
+<br />  
 <textarea id="txtconstraints" rows="6" style="width:95%" >
 {
  "audio": false,
@@ -22,17 +24,33 @@
 
 <br/><hr />
 Log:<br/>
-<textarea id="txtlog" rows="12" style="width:95%" readonly ></textarea>
+<textarea id="txtlog" rows="25" style="width:95%"></textarea>
 
 <script type="text/javascript">
+
+var m_stream = null; // 当前的媒体流.
 
 /** 追加日志.
  *
  * @param {*}	msg	日志信息.
  */
-function addlog(str) {
+function addlog(msg) {
 	var txtlog = document.getElementById("txtlog");
 	txtlog.value = txtlog.value + msg + "\r\n";
+}
+
+/** close media (关闭媒体设备).
+ */
+function closeMedia() {
+	if (!m_stream) return;
+	try {
+		m_stream.getTracks()[0].stop();
+		//var video = document.getElementById("myvideo");
+		//video.src = "";
+	} catch(ex) {
+		addlog(str);
+	}
+	m_stream = null;
 }
 
 /** open media (打开媒体设备).
@@ -44,11 +62,17 @@ function openMedia() {
 		alert(msg);
 		return;
 	}
+	// close.
+	closeMedia();
+	// open.
 	try {
 		var txtconstraints = document.getElementById("txtconstraints");
 		var strconstraints = txtconstraints.value;
 		var constraints = JSON.parse(strconstraints);
+		// open.
 		navigator.getUserMedia(constraints, function(stream) {
+			addlog(stream);
+			m_stream = stream;
 			var video = document.getElementById("myvideo");
 			if (video.mozSrcObject !== undefined) {
 				//Firefox中，video.mozSrcObject最初为null，而不是未定义的，我们可以靠这个来检测Firefox的支持.
@@ -58,12 +82,38 @@ function openMedia() {
 				var vsrc = window.URL && window.URL.createObjectURL(stream) || stream;
 				video.src = vsrc;
 			}
+			video.play();
 		}, function errorFunc(err) {
 			addlog(err);
 		});
 	} catch(ex) {
 		addlog(str);
 	}
+}
+
+/** take photo (拍照).
+ */
+function takePhoto() {
+	var video = document.getElementById("myvideo");
+    var canvas1 = document.getElementById('canvas1');
+    var context1 = canvas1.getContext('2d');
+	context1.drawImage(video, 0, 0,90,120); //将video对象内指定的区域捕捉绘制到画布上指定的区域，实现拍照。
+	// imgdata.
+	var imgformat = "image/jpeg";
+	var imgdata = canvas1.toDataURL(imgformat);
+	addlog("imgdata: " + imgdata);
+	// rawdata.
+	if (false) {
+		//var rawdata = imgdata.substr(22);
+		var p = imgdata.indexOf(",");
+		var rawdata = imgdata.substr(p+1);
+		addlog("rawdata: " + rawdata);
+	}
+}
+
+/** take video (捕获视频).
+ */
+function takeVideo() {
 }
 
 /** 初始化. */
