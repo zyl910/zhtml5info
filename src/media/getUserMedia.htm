@@ -9,6 +9,7 @@
 
 <input type="button" title="openMedia(打开媒体设备)" value="openMedia" onclick="openMedia();" />
 &nbsp; <input type="button" title="closeMedia(关闭媒体设备)" value="closeMedia" onclick="closeMedia();" />
+&nbsp; <input type="button" title="getSources(取得媒体源列表)" value="getSources" onclick="doGetSources();" />
 <br />  
 <textarea id="txtconstraints" rows="6" style="width:95%" >
 {
@@ -163,6 +164,20 @@ function takeVideo() {
     m_timerTakeVideo = window.setInterval(function () {
         context.drawImage(video, 0, 0,90,120);
     }, 60);
+}
+
+/** Get media Sources (取得媒体源列表).
+ */
+function doGetSources() {
+	addlog("MediaStreamTrack.getSources:");
+	try {
+		MediaStreamTrack.getSources(function (ms) {
+			addlog(ms);
+		});
+	} catch(ex) {
+		addlog(ex);
+		// Chrome、Firefox、Edge 不支持 MediaStreamTrack.getSources, 且MDN里没有该函数.
+	}
 }
 
 /** 初始化. */
