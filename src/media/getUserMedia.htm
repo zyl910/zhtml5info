@@ -27,6 +27,35 @@
 <br/><hr />
 Log:<br/>
 <textarea id="txtlog" rows="25" style="width:95%"></textarea>
+<br />  
+Constraints sample:<br/>
+<textarea id="txtconstraintssample" rows="30" style="width:95%" readonly>
+{
+ "audio": false,
+ "video": true
+}
+
+{ audio: true, video: { facingMode: "user" } }
+
+{ audio: true, video: { facingMode: { exact: "environment" } } }
+
+{
+  audio: true,
+  video: {
+    width: { min: 1024, ideal: 1280, max: 1920 },
+    height: { min: 776, ideal: 720, max: 1080 }
+  }
+}
+
+{  
+ 'video': {  
+  'optional': [{  
+   'sourceId': '?'
+  }]
+ }
+}
+
+</textarea><br/>
 
 <script type="text/javascript">
 
