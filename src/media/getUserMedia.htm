@@ -19,7 +19,7 @@
 <video id="myvideo" height="120px" autoplay="autoplay"></video><hr />  
 <input type="button" title="takePhoto(拍照)" value="takePhoto" onclick="takePhoto();" /><br />  
 <canvas id="canvas1" height="120px" ></canvas><hr />  
-<input type="button" title="takeVideo(视频)" value="takeVedio" onclick="takeVideo();" />
+<input type="button" title="takeVideo(视频)" value="takeVideo" onclick="takeVideo();" />
 &nbsp; <input type="button" title="stopTakeVideo(停止视频)" value="stopTakeVideo" onclick="stopTakeVideo();" />
 <br />  
 <canvas id="canvas2" height="120px"></canvas>  
@@ -147,6 +147,22 @@ function init() {
 	}
 	if (!window.URL) {
 		window.URL = window.webkitURL || window.mozURL || window.msURL;
+	}
+	// video events.
+	// https://developer.mozilla.org/en-US/docs/Web/Guide/Events/Media_events
+	// https://www.w3cschool.cn/jsref/dom-obj-event.html
+	var eventnames = ["abort", "canplay", "canplaythrough", "durationchange", "emptied", "encrypted  ", "ended", "error", "interruptbegin", "interruptend", "loadeddata", "loadedmetadata", "loadstart", "mozaudioavailable", "pause", "play", "playing", "progress", "ratechange", "seeked", "seeking", "stalled", "suspend", "timeupdate", "volumechange", "waiting"];
+	var video = document.getElementById("myvideo");
+	for(var i=0; i<eventnames.length; ++i) {
+		var eventname = eventnames[i];
+		video.addEventListener(eventname, function(e){
+			e = e || window.event;
+			var bshow = eventname!="waiting";	// waiting事件太频繁, 不显示.
+			if (bshow) {
+				addlog("video event: " + eventname);
+				addlog(e);
+			}
+		});
 	}
 }
 init();
