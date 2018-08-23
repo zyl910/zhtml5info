@@ -19,7 +19,9 @@
 <video id="myvideo" height="120px" autoplay="autoplay"></video><hr />  
 <input type="button" title="takePhoto(拍照)" value="takePhoto" onclick="takePhoto();" /><br />  
 <canvas id="canvas1" height="120px" ></canvas><hr />  
-<input type="button" title="takeVideo(视频)" value="takeVedio" onclick="takeVideo();" /><br />  
+<input type="button" title="takeVideo(视频)" value="takeVedio" onclick="takeVideo();" />
+&nbsp; <input type="button" title="stopTakeVideo(停止视频)" value="stopTakeVideo" onclick="stopTakeVideo();" />
+<br />  
 <canvas id="canvas2" height="120px"></canvas>  
 
 <br/><hr />
@@ -29,6 +31,7 @@ Log:<br/>
 <script type="text/javascript">
 
 var m_stream = null; // 当前的媒体流.
+var m_timerTakeVideo = null; // takeVideo的定时器.
 
 /** 追加日志.
  *
@@ -71,6 +74,7 @@ function openMedia() {
 		var constraints = JSON.parse(strconstraints);
 		// open.
 		navigator.getUserMedia(constraints, function(stream) {
+			addlog("stream:");
 			addlog(stream);
 			m_stream = stream;
 			var video = document.getElementById("myvideo");
@@ -111,13 +115,30 @@ function takePhoto() {
 	}
 }
 
+/** stop take video (停止捕获视频).
+ */
+function stopTakeVideo() {
+	if (!m_timerTakeVideo) return;
+	clearInterval(m_timerTakeVideo);
+	m_timerTakeVideo = null;
+}
+
 /** take video (捕获视频).
  */
 function takeVideo() {
+	stopTakeVideo();
+    // 将视频帧绘制到Canvas对象上,Canvas每60ms切换帧，形成肉眼视频效果  
+	var video = document.getElementById("myvideo");
+    var canvas2 = document.getElementById('canvas2');
+    var context = canvas2.getContext('2d');
+    m_timerTakeVideo = window.setInterval(function () {
+        context.drawImage(video, 0, 0,90,120);
+    }, 60);
 }
 
 /** 初始化. */
 function init() {
+	// compatibility.
 	if (!navigator.getUserMedia) {
 		navigator.getUserMedia = navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia;
 		if (!navigator.getUserMedia) {
