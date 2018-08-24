@@ -191,11 +191,6 @@ function init() {
 	if (!window.URL) {
 		window.URL = window.webkitURL || window.mozURL || window.msURL;
 	}
-	if (!navigator.mediaDevices) {
-		var msg = 'navigator.mediaDevices not supported!';
-		addlog(msg);
-		return;
-	}
 	// video events.
 	// https://developer.mozilla.org/en-US/docs/Web/Guide/Events/Media_events
 	// https://www.w3cschool.cn/jsref/dom-obj-event.html
@@ -212,6 +207,17 @@ function init() {
 			}
 		});
 	}
+	// navigator.mediaDevices
+	if (!navigator.mediaDevices) {
+		var msg = 'navigator.mediaDevices not supported!';
+		addlog(msg);
+		return;
+	}
+	navigator.mediaDevices.addEventListener("devicechange", function(e){
+		e = e || window.event;
+		addlog("mediaDevices event: devicechange");
+		addlog(e);
+	});
 }
 init();
 
