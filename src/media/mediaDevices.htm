@@ -1,0 +1,230 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<title>navigator.getUserMedia (旧版音视频接口)</title>
+</head>
+<body>
+<h1>navigator.mediaDevices (新版音视频接口)</h1>
+
+<input type="button" title="openMedia(打开媒体设备)" value="openMedia" onclick="openMedia();" />
+&nbsp; <input type="button" title="closeMedia(关闭媒体设备)" value="closeMedia" onclick="closeMedia();" />
+&nbsp; <input type="button" title="enumerateDevices(枚举媒体设备)" value="enumerateDevices" onclick="enumerateDevices();" />
+<br />  
+<textarea id="txtconstraints" rows="6" style="width:95%" >
+{
+ "audio": false,
+ "video": true
+}
+</textarea><br/>
+<input type="button" title="takePhoto(拍照)" value="takePhoto" onclick="takePhoto();" />
+&nbsp; <input type="button" title="takeVideo(视频)" value="takeVideo" onclick="takeVideo();" />
+&nbsp; <input type="button" title="stopTakeVideo(停止视频)" value="stopTakeVideo" onclick="stopTakeVideo();" />
+<br />  
+<video id="myvideo" height="120px" autoplay="autoplay"></video>
+ Photo:<canvas id="canvas1" height="120px" ></canvas>
+ Video:<canvas id="canvas2" height="120px"></canvas>  
+
+<br/><hr />
+Log:<br/>
+<textarea id="txtlog" rows="25" style="width:95%"></textarea>
+<br />
+<hr />
+Constraints sample:<br/>
+<textarea id="txtconstraintssample" rows="30" style="width:95%" readonly>
+{
+ "audio": false,
+ "video": true
+}
+
+{ audio: true, video: { facingMode: "user" } }
+
+{ audio: true, video: { facingMode: { exact: "environment" } } }
+
+{
+  audio: true,
+  video: {
+    width: { min: 1024, ideal: 1280, max: 1920 },
+    height: { min: 776, ideal: 720, max: 1080 }
+  }
+}
+
+{  
+ 'video': {  
+  'optional': [{  
+   'sourceId': '?'
+  }]
+ }
+}
+
+</textarea><br/>
+
+<script type="text/javascript">
+
+var m_stream = null; // 当前的媒体流.
+var m_timerTakeVideo = null; // takeVideo的定时器.
+
+/** 追加日志.
+ *
+ * @param {*}	msg	日志信息.
+ */
+function addlog(msg) {
+	var txtlog = document.getElementById("txtlog");
+	txtlog.value = txtlog.value + msg + "\r\n";
+}
+
+/** close media (关闭媒体设备).
+ */
+function closeMedia() {
+	if (!m_stream) return;
+	try {
+		m_stream.getTracks()[0].stop();
+		//var video = document.getElementById("myvideo");
+		//video.src = "";
+	} catch(ex) {
+		addlog(str);
+	}
+	m_stream = null;
+}
+
+/** open media (打开媒体设备).
+ */
+function openMedia() {
+	if (!navigator.getUserMedia) {
+		var msg = 'Native device media streaming (getUserMedia) not supported in this browser.';
+		addlog(msg);
+		alert(msg);
+		return;
+	}
+	// close.
+	closeMedia();
+	// open.
+	try {
+		var txtconstraints = document.getElementById("txtconstraints");
+		var strconstraints = txtconstraints.value;
+		var constraints = JSON.parse(strconstraints);
+		// open.
+		/*navigator.getUserMedia(constraints, function(stream) {
+			addlog("stream:");
+			addlog(stream);
+			m_stream = stream;
+			var video = document.getElementById("myvideo");
+			if (video.mozSrcObject !== undefined) {
+				//Firefox中，video.mozSrcObject最初为null，而不是未定义的，我们可以靠这个来检测Firefox的支持.
+				video.mozSrcObject = stream;
+			}
+			else {
+				var vsrc = window.URL && window.URL.createObjectURL(stream) || stream;
+				video.src = vsrc;
+			}
+			video.play();
+		}, function errorFunc(err) {
+			addlog(err);
+		});*/
+	} catch(ex) {
+		addlog(str);
+	}
+}
+
+/** take photo (拍照).
+ */
+function takePhoto() {
+	var video = document.getElementById("myvideo");
+    var canvas1 = document.getElementById('canvas1');
+    var context1 = canvas1.getContext('2d');
+	/*context1.drawImage(video, 0, 0,90,120); //将video对象内指定的区域捕捉绘制到画布上指定的区域，实现拍照。
+	// imgdata.
+	var imgformat = "image/jpeg";
+	var imgdata = canvas1.toDataURL(imgformat);
+	addlog("imgdata: " + imgdata);
+	// rawdata.
+	if (false) {
+		//var rawdata = imgdata.substr(22);
+		var p = imgdata.indexOf(",");
+		var rawdata = imgdata.substr(p+1);
+		addlog("rawdata: " + rawdata);
+	}*/
+}
+
+/** stop take video (停止捕获视频).
+ */
+function stopTakeVideo() {
+	if (!m_timerTakeVideo) return;
+	clearInterval(m_timerTakeVideo);
+	m_timerTakeVideo = null;
+}
+
+/** take video (捕获视频).
+ */
+function takeVideo() {
+	stopTakeVideo();
+    // 将视频帧绘制到Canvas对象上,Canvas每60ms切换帧，形成肉眼视频效果  
+	var video = document.getElementById("myvideo");
+    var canvas2 = document.getElementById('canvas2');
+    var context = canvas2.getContext('2d');
+    /*m_timerTakeVideo = window.setInterval(function () {
+        context.drawImage(video, 0, 0,90,120);
+    }, 60);*/
+}
+
+/** Enumerate media devices (枚举媒体设备).
+ */
+function enumerateDevices() {
+	if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+		var msg = 'navigator.mediaDevices.enumerateDevices not supported!';
+		addlog(msg);
+		return;
+	}
+	addlog("MediaDevices.enumerateDevices:");
+	try {
+		/*MediaStreamTrack.getSources(function (ms) {
+			addlog(ms);
+		});*/
+		navigator.mediaDevices.enumerateDevices().then(function(devices) {
+			if (null==devices) return;
+			addlog("#devices.length: " + devices.length);
+			for(var i=0; i<devices.length; ++i) {
+				var device = devices[i];
+				addlog(device);
+			}
+		}, function(err) {
+			addlog(err);
+		});
+	} catch(ex) {
+		addlog(ex);
+	}
+}
+
+/** 初始化. */
+function init() {
+	// compatibility.
+	if (!window.URL) {
+		window.URL = window.webkitURL || window.mozURL || window.msURL;
+	}
+	if (!navigator.mediaDevices) {
+		var msg = 'navigator.mediaDevices not supported!';
+		addlog(msg);
+		return;
+	}
+	// video events.
+	// https://developer.mozilla.org/en-US/docs/Web/Guide/Events/Media_events
+	// https://www.w3cschool.cn/jsref/dom-obj-event.html
+	var eventnames = ["abort", "canplay", "canplaythrough", "durationchange", "emptied", "encrypted  ", "ended", "error", "interruptbegin", "interruptend", "loadeddata", "loadedmetadata", "loadstart", "mozaudioavailable", "pause", "play", "playing", "progress", "ratechange", "seeked", "seeking", "stalled", "suspend", "timeupdate", "volumechange", "waiting"];
+	var video = document.getElementById("myvideo");
+	for(var i=0; i<eventnames.length; ++i) {
+		var eventname = eventnames[i];
+		video.addEventListener(eventname, function(e){
+			e = e || window.event;
+			var bshow = eventname!="waiting";	// waiting事件太频繁, 不显示.
+			if (bshow) {
+				addlog("video event: " + eventname);
+				addlog(e);
+			}
+		});
+	}
+}
+init();
+
+</script>
+</body>
+</html>
