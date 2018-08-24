@@ -22,8 +22,8 @@
 &nbsp; <input type="button" title="stopTakeVideo(停止视频)" value="stopTakeVideo" onclick="stopTakeVideo();" />
 <br />  
 <video id="myvideo" height="120px" autoplay="autoplay"></video>
- Photo:<canvas id="canvas1" height="120px" ></canvas>
- Video:<canvas id="canvas2" height="120px"></canvas>  
+ Photo:<canvas id="canvas1" width="120px" height="120px" ></canvas>
+ Video:<canvas id="canvas2" width="120px" height="120px"></canvas>  
 
 <br/><hr />
 Log:<br/>
@@ -79,8 +79,6 @@ function closeMedia() {
 	if (!m_stream) return;
 	try {
 		m_stream.getTracks()[0].stop();
-		//var video = document.getElementById("myvideo");
-		//video.src = "";
 	} catch(ex) {
 		addlog(str);
 	}
@@ -90,10 +88,9 @@ function closeMedia() {
 /** open media (打开媒体设备).
  */
 function openMedia() {
-	if (!navigator.getUserMedia) {
-		var msg = 'Native device media streaming (getUserMedia) not supported in this browser.';
+	if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+		var msg = 'navigator.mediaDevices.getUserMedia not supported!';
 		addlog(msg);
-		alert(msg);
 		return;
 	}
 	// close.
@@ -104,23 +101,16 @@ function openMedia() {
 		var strconstraints = txtconstraints.value;
 		var constraints = JSON.parse(strconstraints);
 		// open.
-		/*navigator.getUserMedia(constraints, function(stream) {
+		navigator.mediaDevices.getUserMedia(constraints).then(function(stream) {
+			if (null==stream) return;
 			addlog("stream:");
 			addlog(stream);
 			m_stream = stream;
 			var video = document.getElementById("myvideo");
-			if (video.mozSrcObject !== undefined) {
-				//Firefox中，video.mozSrcObject最初为null，而不是未定义的，我们可以靠这个来检测Firefox的支持.
-				video.mozSrcObject = stream;
-			}
-			else {
-				var vsrc = window.URL && window.URL.createObjectURL(stream) || stream;
-				video.src = vsrc;
-			}
-			video.play();
-		}, function errorFunc(err) {
+			video.srcObject = stream;
+		}, function(err) {
 			addlog(err);
-		});*/
+		});
 	} catch(ex) {
 		addlog(str);
 	}
@@ -132,7 +122,7 @@ function takePhoto() {
 	var video = document.getElementById("myvideo");
     var canvas1 = document.getElementById('canvas1');
     var context1 = canvas1.getContext('2d');
-	/*context1.drawImage(video, 0, 0,90,120); //将video对象内指定的区域捕捉绘制到画布上指定的区域，实现拍照。
+	context1.drawImage(video, 0, 0,120,120); //将video对象内指定的区域捕捉绘制到画布上指定的区域，实现拍照。
 	// imgdata.
 	var imgformat = "image/jpeg";
 	var imgdata = canvas1.toDataURL(imgformat);
@@ -143,7 +133,7 @@ function takePhoto() {
 		var p = imgdata.indexOf(",");
 		var rawdata = imgdata.substr(p+1);
 		addlog("rawdata: " + rawdata);
-	}*/
+	}
 }
 
 /** stop take video (停止捕获视频).
@@ -162,9 +152,9 @@ function takeVideo() {
 	var video = document.getElementById("myvideo");
     var canvas2 = document.getElementById('canvas2');
     var context = canvas2.getContext('2d');
-    /*m_timerTakeVideo = window.setInterval(function () {
-        context.drawImage(video, 0, 0,90,120);
-    }, 60);*/
+    m_timerTakeVideo = window.setInterval(function () {
+        context.drawImage(video, 0, 0,120,120);
+    }, 60);
 }
 
 /** Enumerate media devices (枚举媒体设备).
