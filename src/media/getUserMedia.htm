@@ -17,18 +17,19 @@
  "video": true
 }
 </textarea><br/>
-<video id="myvideo" height="120px" autoplay="autoplay"></video><hr />  
-<input type="button" title="takePhoto(拍照)" value="takePhoto" onclick="takePhoto();" /><br />  
-<canvas id="canvas1" height="120px" ></canvas><hr />  
-<input type="button" title="takeVideo(视频)" value="takeVideo" onclick="takeVideo();" />
+<input type="button" title="takePhoto(拍照)" value="takePhoto" onclick="takePhoto();" />
+&nbsp; <input type="button" title="takeVideo(视频)" value="takeVideo" onclick="takeVideo();" />
 &nbsp; <input type="button" title="stopTakeVideo(停止视频)" value="stopTakeVideo" onclick="stopTakeVideo();" />
 <br />  
-<canvas id="canvas2" height="120px"></canvas>  
+<video id="myvideo" height="120px" autoplay="autoplay"></video>
+ Photo:<canvas id="canvas1" height="120px" ></canvas>
+ Video:<canvas id="canvas2" height="120px"></canvas>  
 
 <br/><hr />
 Log:<br/>
 <textarea id="txtlog" rows="25" style="width:95%"></textarea>
-<br />  
+<br />
+<hr />
 Constraints sample:<br/>
 <textarea id="txtconstraintssample" rows="30" style="width:95%" readonly>
 {
