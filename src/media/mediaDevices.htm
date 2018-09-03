@@ -59,6 +59,7 @@ Constraints sample:<br/>
 
 </textarea><br/>
 
+<script type="text/javascript" src="../js/zyllibjs.js"></script>
 <script type="text/javascript">
 
 var m_stream = null; // 当前的媒体流.
@@ -80,7 +81,7 @@ function closeMedia() {
 	try {
 		m_stream.getTracks()[0].stop();
 	} catch(ex) {
-		addlog(str);
+		addlog(zyl.Common.exstr(ex));
 	}
 	m_stream = null;
 }
@@ -108,11 +109,11 @@ function openMedia() {
 			m_stream = stream;
 			var video = document.getElementById("myvideo");
 			video.srcObject = stream;
-		}, function(err) {
-			addlog(err);
+		}, function(ex) {
+			addlog(zyl.Common.exstr(ex));
 		});
 	} catch(ex) {
-		addlog(str);
+		addlog(zyl.Common.exstr(ex));
 	}
 }
 
@@ -177,8 +178,8 @@ function enumerateDevices() {
 				var device = devices[i];
 				addlog(device);
 			}
-		}, function(err) {
-			addlog(err);
+		}, function(ex) {
+			addlog(zyl.Common.exstr(ex));
 		});
 	} catch(ex) {
 		addlog(ex);
