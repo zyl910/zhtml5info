@@ -29,13 +29,13 @@ zyl.Common = function () {
 	
 	return {
 		
-		/** Class extend (类继承). 即设置好 Child 的原型为 Parent的原型实例，并设置 uber 属性.
+		/** Class inherit (类继承). 即设置好 Child 的原型为 Parent的原型实例，并设置 uber 属性.
 		 * 
 		 *  @param	{Function}	Child	Subclass (子类).
 		 *  @param	{Function}	Parent	Parent class (父类).
 		 *	@static
 		 */
-		extend: function(Child, Parent) {
+		inherit: function(Child, Parent) {
 			var F = function(){};
 			F.prototype = Parent.prototype;
 			Child.prototype = new F();
