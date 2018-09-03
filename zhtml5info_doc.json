@@ -1,0 +1,7 @@
+﻿// Use by tool/jsduck-5.3.4.exe
+{
+    //生成文档的title.
+    "--title": "zhtml5info: HTML5 apis info (HTML5各种API的信息展示工具)",
+    //对于文档标记：{@link Boolean}，由于 Ext JS内建了 Boolean 类型，所以JSDuck创建文档时默认采用了Boolean,可以使用此配置来启用或者禁用.
+    "--builtin-classes": true
+}
