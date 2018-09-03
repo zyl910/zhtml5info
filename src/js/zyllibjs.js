@@ -50,18 +50,17 @@ zyl.Common = function () {
 		 *	@static
 		 */
 		getClassName: function(obj) {
-			if (obj && obj.constructor && obj.constructor.toString()) {
+			if (obj) {
 				/*
 				* for browsers which have name property in the constructor
 				* of the object,such as chrome 
 				*/
-				if(obj.constructor.name) {
+				if(obj.constructor.name && "Error"!=obj.constructor.name) {
 					return obj.constructor.name;
 				}
-				var str = obj.constructor.toString();
+				var str = Object.prototype.toString.call(obj);
 				/*
-				* executed if the return of object.constructor.toString() is 
-				* "[object objectClass]"
+				* executed if the return is "[object objectClass]"
 				*/
 				var arr = null;
 				if(str.charAt(0) == '[')
