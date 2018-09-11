@@ -10,6 +10,7 @@
 <input type="button" title="openMedia(打开媒体设备)" value="openMedia" onclick="openMedia();" />
 &nbsp; <input type="button" title="closeMedia(关闭媒体设备)" value="closeMedia" onclick="closeMedia();" />
 &nbsp; <input type="button" title="getSources(取得媒体源列表)" value="getSources" onclick="doGetSources();" />
+&nbsp; <input type="button" title="test(测试)" value="test" onclick="doTest();" />
 <br />  
 <textarea id="txtconstraints" rows="6" style="width:95%" >
 {
@@ -72,6 +73,16 @@ var m_timerTakeVideo = null; // takeVideo的定时器.
 function addlog(msg) {
 	var txtlog = document.getElementById("txtlog");
 	txtlog.value = txtlog.value + msg + "\r\n";
+}
+
+/** Do test (测试).
+ */
+function doTest() {
+	var a = {"a":1};
+	var b = {"b":2};
+	var c = {"c":3};
+	zyl.Common.extend(false, a, b, undefined, c, null, 1, "z");
+	addlog(a);
 }
 
 /** close media (关闭媒体设备).

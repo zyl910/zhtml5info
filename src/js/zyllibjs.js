@@ -26,6 +26,29 @@ zyl = window.zyl || {};
  * @static
  */
 zyl.Common = function () {
+
+	/** Merge the contents of two or more objects together into the first object.(把两个或者更多的对象合并到第一个当中). Same jQuery.extend .
+	 * 
+	 *  @param	{Object}	target	An object that will receive the new properties if additional objects are passed in.
+	 *  @param	{Object[]}	srclist An object containing additional properties to merge in.
+	 *  @param	{Boolean}	deep	If true, the merge becomes recursive (aka. deep copy). Passing false for this argument is not supported. (尚未实现)
+	 *	@static @private
+	 */
+	var m_extend = function(target, srclist, deep) {
+		if (null==target) return;
+		if (null==srclist) return;
+		if (srclist.length<=0) return;
+		for (var i = 0; i < srclist.length; ++i) {
+			var p = srclist[i];
+			if (null==p) continue;
+			if (typeof p !== "object") continue;
+			// append.
+			for (var key in p) {
+				var v = p[key];
+				target[key] = v;
+			}
+		}
+	};
 	
 	return {
 		
@@ -43,9 +66,40 @@ zyl.Common = function () {
 			Child.uber = Parent.prototype;
 		},
 		
+		/** Merge the contents of two or more objects together into the first object.(把两个或者更多的对象合并到第一个当中). Same jQuery.extend .
+		 * 
+		 *  @param	{Object}	target	An object that will receive the new properties if additional objects are passed in.
+		 *  @param	{Object}	object1 An object containing additional properties to merge in.
+		 *	@static
+		 */
+		extend: function(target, object1) {
+			var deep = false;
+			var srclist = [];
+			var targetflag = false;
+			var atarget = null;
+			for (var i = 0; i < arguments.length; i++) {
+				var p = arguments[i];
+				if (0==i && (typeof p == "boolean")) {
+					deep = p;
+					continue;
+				}
+				if (!targetflag) {
+					targetflag = true;
+					atarget = p;
+					continue;
+				}
+				// push.
+				srclist.push(p);
+			}
+			if (!atarget) {
+				return;
+			}
+			m_extend(atarget, srclist, deep);
+		},
+		
 		/** Get class name string (取得类名字符串).
 		 * 
-		 *  @param	{Object}	A object (一个对象).
+		 *  @param	{Object}	obj	A object (一个对象).
 		 *  @return	{String}	Class name string (类名字符串). 若不是对象则返回 `undefined` .
 		 *	@static
 		 */
