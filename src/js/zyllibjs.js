@@ -19,6 +19,14 @@
  */
 zyl = window.zyl || {};
 
+/** @class
+ * [namespace] Json related tools (Json相关工具).
+ * @abstract
+ */
+zyl.json = window.zyl.json || {};
+
+
+// == zyl: zyl's library (zyl的库) ==
 
 /** @class zyl.Common
  * Common utils (公共工具).
@@ -189,3 +197,199 @@ zyl.Common = function () {
 		version: 0x100
 	};
 }();
+
+
+// == zyl.json: Json tools (Json相关工具) ==
+
+/** @class
+ * Data json option (数据Json选项).
+ *
+ */
+zyl.json.DataJsonOption = function(cfg) {
+	cfg = cfg || {};
+	/** @property {Number} maxdeep	Max deep(最大深度). 0 is default. */
+    this.maxdeep = cfg["maxdeep"] || 0;
+	/** @property {Boolean} forcecopy	Force copy(强行复制). 即不判断是不是数据Json, 而总是强行复制. */
+    this.forcecopy = cfg["forcecopy"] || false;
+};
+
+/** @class
+ * Data json process status (数据Json处理状态).
+ *
+ */
+zyl.json.DataJsonStatus = function(cfg) {
+	cfg = cfg || {};
+};
+
+/** @class
+ * Data json processor (数据Json处理者).
+ * @abstract
+ */
+zyl.json.DataJsonProcessor = function(cfg) {
+	cfg = cfg || {};
+};
+
+/** @class
+ * Normal data json processor (普通数据Json处理者).
+ * @extends zyl.json.DataJsonProcessor
+ */
+zyl.json.NormalDataJsonProcessor = function(cfg) {
+	cfg = cfg || {};
+};
+zyl.Common.inherit(zyl.json.NormalDataJsonProcessor, zyl.json.DataJsonProcessor);
+(function(){
+	
+})();
+
+/** @class
+ * Data json process context (数据Json处理环境).
+ */
+zyl.json.DataJsonContext = function(cfg) {
+	cfg = cfg || {};
+	/** @property {zyl.json.DataJsonProcessor[]} processors DataJsonProcessor list (数据Json处理者列表). */
+    this.processors = cfg["processors"] || [];
+	/** @property {zyl.json.DataJsonOption} option Data json option (数据Json选项). */
+    this.option = cfg["option"] || null;
+	// private.
+	/** @property {zyl.json.DataJsonStatus} m_status Data json process status (数据Json处理状态). @private */
+	this.m_status = cfg["m_status"] || null;
+};
+(function(){
+
+	/** Check any is data json object (判断是不是数据Json对象).
+	 * 
+	 *  @param	{*}	src	Source (源对象).
+	 *  @return	{Boolean}	Return true/false.
+	 */
+	zyl.json.DataJsonContext.prototype.isDataJson = function(src){
+		var rt = false;
+		return rt;
+	};
+
+	/** Convert any to data json object (将任意数据转为数据Json对象).
+	 * 
+	 *  @param	{*}	src	Source (源对象).
+	 *  @return	{String}	Return data json object (数据Json对象).
+	 */
+	zyl.json.DataJsonContext.prototype.toDataJson = function(src){
+		var rt = src;
+		return rt;
+	};
+
+})();
+
+/** @class zyl.json.DataJsonUtil
+ * Data json utils (数据Json工具).
+ *
+ * @static
+ */
+zyl.json.DataJsonUtil = function () {
+	/** @property {zyl.json.DataJsonProcessor[]} m_processors DataJsonProcessor list (数据Json处理者列表). @private @static */
+	var m_processors = [];
+	
+	return {
+		
+		/** Create DataJsonContext (创建DataJsonContext).
+		 * 
+		 *  @param	{zyl.json.DataJsonOption}	[option=null]	Data json option (数据Json选项).
+		 *  @return	{zyl.json.DataJsonContext}	Return DataJsonContext.
+		 *	@static
+		 */
+		createDataJsonContext: function(option) {
+			var ctx = new zyl.json.DataJsonContext({
+				processors: m_processors,
+				option: option
+			});
+			return ctx;
+		},
+		
+		/** Check any is data json object (判断是不是数据Json对象).
+		 * 
+		 *  @param	{*}	src	Source (源对象).
+		 *  @param	{zyl.json.DataJsonOption}	[option=null]	Data json option (数据Json选项).
+		 *  @return	{Boolean}	Return true/false.
+		 *	@static
+		 */
+		isDataJson: function(src, option) {
+			var rt = false;
+			if (typeof(src) != "object") {
+				//rt = false;
+			} else if (null==src) {
+				//rt = false;
+			} else {
+				var ctx = zyl.json.DataJsonUtil.createDataJsonContext(option);
+				rt = ctx.isDataJson(src);
+			}
+			return rt;
+		},
+		
+		/** Convert any to data json object (将任意数据转为数据Json对象).
+		 * 
+		 *  @param	{*}	src	Source (源对象).
+		 *  @param	{zyl.json.DataJsonOption}	[option=null]	Data json option (数据Json选项).
+		 *  @return	{String}	Return data json object (数据Json对象).
+		 *	@static
+		 */
+		toDataJson: function(src, option) {
+			var rt = src;
+			if (typeof(src) != "object") {
+				//rt = src;
+			} else if (null==src) {
+				//rt = src;
+			} else {
+				var ctx = zyl.json.DataJsonUtil.createDataJsonContext(option);
+				rt = ctx.toDataJson(src);
+			}
+			return rt;
+		},
+		
+		/** Convert any to data json string (将任意数据转为数据Json字符串).
+		 * 
+		 *  @param	{*}	src	Source (源对象).
+		 *  @param	{zyl.json.DataJsonOption}	[option=null]	Data json option (数据Json选项).
+		 *  @return	{String}	Return string (返回字符串).
+		 *	@static
+		 */
+		strDataJson: function(src, option) {
+			var rt = "";
+			if (typeof(src) != "object") {
+				rt = "" + src;
+			} else if (null==src) {
+				rt = "" + src;
+			} else {
+				var json = zyl.json.DataJsonUtil.toDataJson(src, option);
+				rt = JSON.stringify(json);
+			}
+			return rt;
+		},
+		
+		/** Convert any to string (将任意数据转为字符串).
+		 * 
+		 *  @param	{*}	src	Source (源对象).
+		 *  @return	{String}	Return string (返回字符串).
+		 *	@static
+		 */
+		str: function(src) {
+			var rt = "";
+			if (typeof src == "object") {
+				if (null==src) {
+					rt = "" + src;
+				} else if (src instanceof Error) {
+					rt = zyl.Common.exstr(src);
+				} else {
+					rt = zyl.json.DataJsonUtil.strDataJson(src);
+				}
+			} else {
+				rt = "" + src;
+			}
+			return rt;
+		},
+		
+		/** Version (版本号). @static @readonly */
+		version: 0x100
+	};
+}();
+(function(){
+	// init DataJson.
+	
+})();
