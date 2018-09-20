@@ -60,6 +60,9 @@ Constraints sample:<br/>
 
 </textarea><br/>
 
+<!--[if lt IE 9]>
+	<script type="text/javascript" src="../js/json2.js"></script>
+<![endif]-->
 <script type="text/javascript" src="../js/zyllibjs.js"></script>
 <script type="text/javascript">
 
@@ -80,9 +83,13 @@ function addlog(msg) {
 /** Do test (测试).
  */
 function doTest() {
+	var e = new RangeError("Test RangeError!");
 	var a = {"a":1};
 	var b = {"b":2};
-	var c = {"c":3};
+	var c = {"c": [
+		{"d": 3},
+		{"d": 4, "e":e}
+	]};
 	zyl.Common.extend(false, a, b, undefined, c, null, 1, "z");
 	addlog(a);
 }
