@@ -515,11 +515,27 @@ zyl.json.DataJsonContext = function(cfg) {
 					var key = this.m_status.outfields[i];
 					fields[key] = (fields[key]||0) + 1;
 				}
+				//for (var key in fields) {
+				//	var v = cur[key];
+				//	if (typeof(v) == "undefined") continue;
+				//	var v2 = this.m_conv(v);
+				//	dst[key] = v2;
+				//}
+				// sort.
+				var fieldarr = [];
 				for (var key in fields) {
+					fieldarr.push(key);
+				}
+				fieldarr.sort();
+				// put.
+				for(var i=0; i<fieldarr.length; ++i) {
+					var key = fieldarr[i];
 					var v = cur[key];
 					if (typeof(v) == "undefined") continue;
 					var v2 = this.m_conv(v);
 					dst[key] = v2;
+				}
+				if (null!=dst) {
 				}
 			}
 			//done.
