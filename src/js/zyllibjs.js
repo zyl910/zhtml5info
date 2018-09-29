@@ -297,7 +297,9 @@ zyl.json.DataJsonStatus = function(cfg) {
 	/** @property {Number} countNondata Nondata count (非数据对象的数量). */
     this.countNondata = cfg["countNondata"] || 0;
 	/** @property {zyl.json.DataJsonProcessor} processorCaught Caught processor (被捕获处理者). */
-    this.processorCaught = cfg["processorCaught"] || false;
+    this.processorCaught = cfg["processorCaught"] || null;
+	/** @property {Boolean} isstop Is stop (是否中断). */
+    this.isstop = cfg["isstop"] || false;
     // -- out --
 	/** @property {Boolean} outisdata [out] Is date json (是不是数据Json). */
     this.outisdata = cfg["outisdata"] || false;
@@ -307,6 +309,34 @@ zyl.json.DataJsonStatus = function(cfg) {
     this.outfields = cfg["outfields"] || [];
 	/** @property {Boolean} outenumfield [out] Need enum field (是否需要枚举字段). */
     this.outenumfield = cfg["outenumfield"] || false;
+};
+
+/** @class
+ * Data json processor rule (数据Json处理者规则).
+ *
+ * {@link zyl.json.DataJsonUtil#fillByProcessorRule}
+ */
+zyl.json.DataJsonProcessorRule = function(cfg) {
+	cfg = cfg || {};
+	/** @property {Function} atype	Type' constructed function(类型的构造函数). */
+    this.atype = cfg["atype"] || null;
+	/** @property {Boolean} isstop Is stop (是否中断). */
+    this.isstop = cfg["isstop"] || true;
+	/** @property {Boolean} outisdata [out] Is date json (是不是数据Json). */
+    this.outisdata = cfg["outisdata"] || false;
+	/** @property {String[]} outfields [out] Field list (字段列表). */
+    this.outfields = cfg["outfields"] || [];
+	/** @property {Boolean} outenumfield [out] Need enum field (是否需要枚举字段). */
+    this.outenumfield = cfg["outenumfield"] || undefined;
+	/** @property {Function} callback
+	 * Callback. 原型为 function(context, status, cur, rule) .
+	 * @return {Function} Callback.
+	 * @return {zyl.json.DataJsonContext} return.context Context.
+	 * @return {zyl.json.DataJsonStatus} return.status Data json process status (数据Json处理状态).
+	 * @return {Object} return.cur Current object (当前对象).
+	 * @return {zyl.json.DataJsonProcessorRule} return.rule Rule.
+	 */
+    this.callback = cfg["callback"] || null;
 };
 
 /** @class
@@ -348,16 +378,23 @@ zyl.json.NormalDataJsonProcessor = function(cfg) {
 };
 zyl.Common.inherit(zyl.json.NormalDataJsonProcessor, zyl.json.DataJsonProcessor);
 (function(){
+	var m_rules = [
+		new zyl.json.DataJsonProcessorRule({atype:Error, outfields:"name,code,number,message,description".split(',') })
+	];
 	
 	/** @inheritdoc */
 	zyl.json.NormalDataJsonProcessor.prototype.process = function(status, cur){
 		//zyl.Common.log("zyl.json.NormalDataJsonProcessor.process: " + cur);
-		if (cur instanceof Error) {
-			status.outisdata = false;
-			zyl.Common.arrayPushArray(status.outfields, "name,code,number,message,description".split(','));
-			return true;
-		}
-		return false;
+		//var atype = Error;
+		//if (cur instanceof atype) {
+		//	status.outisdata = false;
+		//	zyl.Common.arrayPushArray(status.outfields, "name,code,number,message,description".split(','));
+		//	return true;
+		//}
+		//return false;
+		var rule = zyl.json.DataJsonUtil.fillByProcessorRule(null, status, cur, m_rules);
+		var rt = null!=rule;
+		return rt;
 	};
 	
 })();
@@ -487,6 +524,9 @@ zyl.json.DataJsonContext = function(cfg) {
 						if (!this.m_status.processorCaught) {
 							this.m_status.processorCaught = processor;
 						}
+					}
+					if (this.m_status.isstop) {
+						break;
 					}
 				}
 			}
@@ -618,6 +658,43 @@ zyl.json.DataJsonUtil = function () {
 				option: option
 			});
 			return ctx;
+		},
+		
+		/** Fill state by processorRule (根据处理者规则填写状态).
+		 * 
+		 *  @param {zyl.json.DataJsonContext} context Data json context (数据Json环境).
+		 *  @param {zyl.json.DataJsonStatus} status Data json process status (数据Json处理状态).
+		 *  @param {Object} cur Current object (当前对象).
+		 *  @param {zyl.json.DataJsonProcessorRule[]} rules Rule list (规则列表).
+		 *  @return	{zyl.json.DataJsonProcessorRule} Rule (生效的规则).
+		 *	@static
+		 */
+		fillByProcessorRule: function(context, status, cur, rules) {
+			var rt = null;
+			if (null==status) return rt;
+			if (status.isstop) return rt;
+			if (null==cur) return rt;
+			if (null==rules) return rt;
+			for(var i=0; i<rules.length; ++i) {
+				var rule = rules[i];
+				if (null==rule) continue;
+				if (typeof rule.atype !== "function") continue;
+				if (cur instanceof rule.atype) {
+					if (typeof rule.isstop === "boolean") status.isstop=rule.isstop;
+					if (typeof rule.outisdata === "boolean") status.outisdata=rule.outisdata;
+					if (typeof rule.outenumfield === "boolean") status.outenumfield=rule.outenumfield;
+					if (rule.outfields) zyl.Common.arrayPushArray(status.outfields, rule.outfields);
+					if (typeof rule.callback === "function") {
+						rule.callback(context, status, cur, rule);
+					}
+					// done.
+					rt = rule;
+					if (status.isstop) {
+						break;
+					}
+				}
+			}
+			return rt;
 		},
 		
 		/** Check any is data json object (判断是不是数据Json对象).
