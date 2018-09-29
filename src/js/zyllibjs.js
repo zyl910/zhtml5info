@@ -290,12 +290,6 @@ zyl.json.DataJsonOption = function(cfg) {
  */
 zyl.json.DataJsonStatus = function(cfg) {
 	cfg = cfg || {};
-	/** @property {Object} origin Origin object (起源对象). */
-    this.origin = cfg["origin"] || null;
-	/** @property {Object[]} stack Deep stack (深度栈). 用于判断深度. */
-    this.deepstack = cfg["deepstack"] || [];
-	/** @property {Number} countNondata Nondata count (非数据对象的数量). */
-    this.countNondata = cfg["countNondata"] || 0;
 	/** @property {zyl.json.DataJsonProcessor} processorCaught Caught processor (被捕获处理者). */
     this.processorCaught = cfg["processorCaught"] || null;
 	/** @property {Boolean} isstop Is stop (是否中断). */
@@ -357,12 +351,13 @@ zyl.json.DataJsonProcessor = function(cfg) {
 	 * - 将 outisdata 设为 false, 然后填好 outobj, 并将 outenumfield设为false. 随后框架会直接使用 outobj.
 	 * - 将 outisdata 设为 false, 然后填好 outobj, 并将 outenumfield设为false, 还填好 outfields. 随后框架会根据 outfields的字段名来填写 outobj.
 	 *
+	 * @param {zyl.json.DataJsonContext} context Data json context (数据Json环境).
 	 * @param	{zyl.json.DataJsonStatus}	status	Data json process status (数据Json处理状态).
 	 * @param	{Object}	cur	Current object (当前对象).
 	 * @return	{Boolean}	Is caught (是否捕获).
 	 * @abstract
 	 */
-	zyl.json.DataJsonProcessor.prototype.process = function(status, cur){
+	zyl.json.DataJsonProcessor.prototype.process = function(context, status, cur){
 		zyl.Common.log("zyl.json.DataJsonProcessor.process: " + cur);
 		return false;
 	};
@@ -383,7 +378,7 @@ zyl.Common.inherit(zyl.json.NormalDataJsonProcessor, zyl.json.DataJsonProcessor)
 	];
 	
 	/** @inheritdoc */
-	zyl.json.NormalDataJsonProcessor.prototype.process = function(status, cur){
+	zyl.json.NormalDataJsonProcessor.prototype.process = function(context, status, cur){
 		//zyl.Common.log("zyl.json.NormalDataJsonProcessor.process: " + cur);
 		//var atype = Error;
 		//if (cur instanceof atype) {
@@ -411,14 +406,18 @@ zyl.Common.inherit(zyl.json.NormalDataJsonProcessor, zyl.json.DataJsonProcessor)
 zyl.json.DataJsonContext = function(cfg) {
 	cfg = cfg || {};
 	/** @property {zyl.json.DataJsonProcessor[]} processors DataJsonProcessor list (数据Json处理者列表). */
-    this.processors = cfg["processors"] || [];
+	this.processors = cfg["processors"] || [];
 	/** @property {zyl.json.DataJsonOption} option Data json option (数据Json选项). */
-    this.option = cfg["option"] || null;
+	this.option = cfg["option"] || null;
+	/** @property {Object} origin Origin object (起源对象). */
+	this.origin = cfg["origin"] || null;
+	/** @property {Object[]} stack Deep stack (深度栈). 用于判断深度. */
+	this.deepstack = cfg["deepstack"] || [];
+	/** @property {Number} countNondata Nondata count (非数据对象的数量). */
+	this.countNondata = cfg["countNondata"] || 0;
 	// private.
-	/** @property {zyl.json.DataJsonStatus} m_status Data json process status (数据Json处理状态). @private */
-	this.m_status = null;
 	/** @property {zyl.json.DataJsonOption} m_option Data json option cache (缓存的数据Json选项). @private */
-    this.m_option = null;
+	this.m_option = null;
 };
 (function(){
 	/** @property {zyl.json.DataJsonOption} m_defaultDataJsonOption Default DataJsonOption (默认数据Json选项). @private @static */
@@ -433,9 +432,9 @@ zyl.json.DataJsonContext = function(cfg) {
 	 * @private
 	 */
 	zyl.json.DataJsonContext.prototype.m_initStatus = function(src){
-		this.m_status = new zyl.json.DataJsonStatus({
-			origin: src
-		});
+		this.origin = src;
+		this.deepstack = [];
+		this.countNondata = 0;
 		this.m_option = new zyl.json.DataJsonOption();
 		zyl.Common.extend(this.m_option, m_defaultDataJsonOption, this.option);
 	};
@@ -458,7 +457,7 @@ zyl.json.DataJsonContext = function(cfg) {
 		return rt;
 	};
 	
-	/** Convert current object to data json object (将当前对象转为数据Json对象).
+	/** Convert current object to data json object (将当前对象转为数据Json对象). 用于内部转换, 支持递归调用.
 	 * 
 	 * @param	{*}	cur	Current object (当前对象).
 	 * @return	{Object}	Return data json object (数据Json对象).
@@ -470,14 +469,14 @@ zyl.json.DataJsonContext = function(cfg) {
 		if (null==cur) return rt;
 		// deep.
 		var maxdeep = this.m_option.maxdeep || m_defaultDataJsonOption.maxdeep;
-		if (this.m_status.deepstack.length > maxdeep) {
+		if (this.deepstack.length > maxdeep) {
 			return rt;
 		}
-		var ishad = zyl.Common.arrayIndexOf(this.m_status.deepstack, cur)>=0;	// 检查递归调用.
+		var ishad = zyl.Common.arrayIndexOf(this.deepstack, cur)>=0;	// 检查递归调用.
 		if (ishad) {
 			return rt;
 		}
-		this.m_status.deepstack.push(cur);
+		this.deepstack.push(cur);
 		try {
 			// array.
 			if (zyl.Common.isArray(cur)) {
@@ -493,14 +492,14 @@ zyl.json.DataJsonContext = function(cfg) {
 				//	rt = cur
 				//} else {
 				//}
-				var countNondataOld = this.m_status.countNondata;
+				var countNondataOld = this.countNondata;
 				var lst = [];
 				for(var i=0; i<cur.length; ++i) {
 					var p = cur[i];
 					var q = this.m_conv(p);
 					lst.push(q);
 				}
-				var countNondataDiff = this.m_status.countNondata-countNondataOld;
+				var countNondataDiff = this.countNondata-countNondataOld;
 				if (countNondataDiff>0 || this.m_option.forcecopy) {
 					rt = lst;
 				}
@@ -508,78 +507,82 @@ zyl.json.DataJsonContext = function(cfg) {
 				return rt;
 			}
 			// object
-			this.m_status.processorCaught = null;
-			this.m_status.outisdata = true;
-			this.m_status.outobj = {};
-			this.m_status.outfields = [];
-			this.m_status.outenumfield = true;
+			var status = new zyl.json.DataJsonStatus();
+			status.outisdata = true;
+			status.outobj = {};
+			status.outenumfield = true;
 			if (null!=this.processors) {
 				for(var i=0; i<this.processors.length; ++i) {
 					var processor = this.processors[i];
 					if (!processor) continue;
 					if (typeof(cur) != "object") return rt;
 					// process.
-					var isCaught = processor.process(this.m_status, cur);
+					var isCaught = processor.process(this, status, cur);
 					if (isCaught) {
-						if (!this.m_status.processorCaught) {
-							this.m_status.processorCaught = processor;
+						if (!status.processorCaught) {
+							status.processorCaught = processor;
 						}
 					}
-					if (this.m_status.isstop) {
+					if (status.isstop) {
 						break;
 					}
 				}
 			}
 			// make.
-			if (!this.m_status.outisdata) {
-				++this.m_status.countNondata;
+			if (!status.outisdata) {
+				++this.countNondata;
 			}
-			var countNondataOld = this.m_status.countNondata;
-			var dst = this.m_status.outobj;
+			var countNondataOld = this.countNondata;
+			var dst = status.outobj;
 			var iskeep = false;	// 可保持原对象.
-			if (this.m_status.outenumfield && this.m_status.outfields.length<=0) {
-				iskeep = null==this.m_status.processorCaught;
+			if (status.outenumfield && status.outfields.length<=0) {
+				iskeep = null==status.processorCaught;
 				for (var key in cur) {
 					var v = cur[key];
 					var v2 = this.m_conv(v);
 					dst[key] = v2;
 				}
-			} else if (this.m_status.outenumfield || this.m_status.outfields.length>0) {
+			} else if (status.outenumfield || status.outfields.length>0) {
 				var fields = {};
-				if (this.m_status.outenumfield) {
+				if (status.outenumfield) {
 					for (var key in cur) {
 						fields[key] = (fields[key]||0) + 1;
 					}
 				}
-				for(var i=0; i<this.m_status.outfields.length; ++i) {
-					var key = this.m_status.outfields[i];
+				for(var i=0; i<status.outfields.length; ++i) {
+					var key = status.outfields[i];
 					fields[key] = (fields[key]||0) + 1;
 				}
-				//for (var key in fields) {
-				//	var v = cur[key];
-				//	if (typeof(v) == "undefined") continue;
-				//	var v2 = this.m_conv(v);
-				//	dst[key] = v2;
-				//}
-				// sort.
-				var fieldarr = [];
-				for (var key in fields) {
-					fieldarr.push(key);
-				}
-				fieldarr.sort();
-				// put.
-				for(var i=0; i<fieldarr.length; ++i) {
-					var key = fieldarr[i];
-					var v = cur[key];
-					if (typeof(v) == "undefined") continue;
-					var v2 = this.m_conv(v);
-					dst[key] = v2;
-				}
-				if (null!=dst) {
+				var usesort = true;
+				if (usesort) {
+					// sort.
+					var fieldarr = [];
+					for (var key in fields) {
+						fieldarr.push(key);
+					}
+					fieldarr.sort();
+					// put.
+					for(var i=0; i<fieldarr.length; ++i) {
+						var key = fieldarr[i];
+						var v = cur[key];
+						if (typeof(v) == "undefined") continue;
+						var v2 = this.m_conv(v);
+						dst[key] = v2;
+					}
+					if (null!=dst) {
+						//debug.
+					}
+				} else {
+					for (var key in fields) {
+						var v = cur[key];
+						if (typeof(v) == "undefined") continue;
+						var v2 = this.m_conv(v);
+						dst[key] = v2;
+					}
 				}
 			}
 			//done.
-			var countNondataDiff = this.m_status.countNondata-countNondataOld;
+			var countNondataDiff = this.countNondata-countNondataOld;
 			var usedst = countNondataDiff>0 || this.m_option.forcecopy ||!iskeep;
 			if (usedst) {
 				rt = dst;
@@ -587,7 +590,7 @@ zyl.json.DataJsonContext = function(cfg) {
 				rt = cur;
 			}
 		} finally {
-			this.m_status.deepstack.pop();
+			this.deepstack.pop();
 		}
 		return rt;
 	};
@@ -604,7 +607,7 @@ zyl.json.DataJsonContext = function(cfg) {
 		return rt;
 	};
 
-	/** Convert any to data json object (将任意数据转为数据Json对象).
+	/** Convert any to data json object (将任意数据转为数据Json对象). 它会初始化环境, 设置 origin, 然后递归转化.
 	 * 
 	 *  @param	{*}	src	Source (源对象).
 	 *  @return	{Object}	Return data json object (数据Json对象).
