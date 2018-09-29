@@ -303,6 +303,10 @@ zyl.json.DataJsonStatus = function(cfg) {
     this.outfields = cfg["outfields"] || [];
 	/** @property {Boolean} outenumfield [out] Need enum field (是否需要枚举字段). */
     this.outenumfield = cfg["outenumfield"] || false;
+	/** @property {Boolean} enumshownull Show null on enum field (枚举字段时是否显示 null值). */
+    this.enumshownull = cfg["isstop"] || false;
+	/** @property {Boolean} enumshowfunction Show function on enum field (枚举字段时是否显示函数值). */
+    this.enumshowfunction = cfg["enumshowfunction"] || false;
 };
 
 /** @class
@@ -316,6 +320,7 @@ zyl.json.DataJsonProcessorRule = function(cfg) {
     this.atype = cfg["atype"] || null;
 	/** @property {Boolean} isstop Is stop (是否中断). */
     this.isstop = cfg["isstop"] || true;
+    // -- out --
 	/** @property {Boolean} outisdata [out] Is date json (是不是数据Json). */
     this.outisdata = cfg["outisdata"] || false;
 	/** @property {String[]} outfields [out] Field list (字段列表). */
@@ -546,7 +551,18 @@ zyl.json.DataJsonContext = function(cfg) {
 				var fields = {};
 				if (status.outenumfield) {
 					for (var key in cur) {
-						fields[key] = (fields[key]||0) + 1;
+						var bshow = true;
+						var v = cur[key];
+						if (bshow && !status.enumshownull) {
+							bshow = (null!==v);
+						}
+						if (bshow && !status.enumshowfunction) {
+							bshow = (typeof v !== "function");
+						}
+						// show.
+						if (bshow) {
+							fields[key] = (fields[key]||0) + 1;
+						}
 					}
 				}
 				for(var i=0; i<status.outfields.length; ++i) {
@@ -565,7 +581,7 @@ zyl.json.DataJsonContext = function(cfg) {
 					for(var i=0; i<fieldarr.length; ++i) {
 						var key = fieldarr[i];
 						var v = cur[key];
-						if (typeof(v) == "undefined") continue;
+						if (typeof(v) === "undefined") continue;
 						var v2 = this.m_conv(v);
 						dst[key] = v2;
 					}
@@ -575,7 +591,7 @@ zyl.json.DataJsonContext = function(cfg) {
 				} else {
 					for (var key in fields) {
 						var v = cur[key];
-						if (typeof(v) == "undefined") continue;
+						if (typeof(v) === "undefined") continue;
 						var v2 = this.m_conv(v);
 						dst[key] = v2;
 					}
