@@ -385,14 +385,7 @@ zyl.Common.inherit(zyl.json.NormalDataJsonProcessor, zyl.json.DataJsonProcessor)
 	/** @inheritdoc */
 	zyl.json.NormalDataJsonProcessor.prototype.process = function(context, status, cur){
 		//zyl.Common.log("zyl.json.NormalDataJsonProcessor.process: " + cur);
-		//var atype = Error;
-		//if (cur instanceof atype) {
-		//	status.outisdata = false;
-		//	zyl.Common.arrayPushArray(status.outfields, "name,code,number,message,description".split(','));
-		//	return true;
-		//}
-		//return false;
-		var rule = zyl.json.DataJsonUtil.fillByProcessorRule(null, status, cur, m_rules);
+		var rule = zyl.json.DataJsonUtil.fillByProcessorRule(context, status, cur, m_rules);
 		var rt = null!=rule;
 		return rt;
 	};
@@ -466,7 +459,6 @@ zyl.json.DataJsonContext = function(cfg) {
 	 * 
 	 * @param	{*}	cur	Current object (当前对象).
 	 * @return	{Object}	Return data json object (数据Json对象).
-	 * @private
 	 */
 	zyl.json.DataJsonContext.prototype.m_conv = function(cur){
 		var rt = cur;

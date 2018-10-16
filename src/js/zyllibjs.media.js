@@ -25,13 +25,16 @@ zyl.json.MediaDataJsonProcessor = function(cfg) {
 zyl.Common.inherit(zyl.json.MediaDataJsonProcessor, zyl.json.DataJsonProcessor);
 (function(){
 	var m_rules = [
-		new zyl.json.DataJsonProcessorRule({atype:MediaStream, outfields:"ended,id".split(',') })
+		new zyl.json.DataJsonProcessorRule({atype:MediaStream, outfields:"ended,id".split(','), callback: function(context, status, cur, rule){
+			var agetTracks = cur.getTracks();
+			status.outobj["getTracks"] = context.m_conv(agetTracks);
+		} }),
+		new zyl.json.DataJsonProcessorRule({atype:MediaStreamTrack, outfields:"enabled,id,kind,label,muted,readonly,readyState,remote".split(',') })
 	];
 	
 	/** @inheritdoc */
 	zyl.json.MediaDataJsonProcessor.prototype.process = function(context, status, cur){
-		//return false;
-		var rule = zyl.json.DataJsonUtil.fillByProcessorRule(null, status, cur, m_rules);
+		var rule = zyl.json.DataJsonUtil.fillByProcessorRule(context, status, cur, m_rules);
 		var rt = null!=rule;
 		return rt;
 	};
