@@ -1,0 +1,57 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<title>Promise demo - timeout</title>
+</head>
+<body>
+<h1>Promise demo - timeout</h1>
+
+<input type="button" title="Test" value="Test" onclick="doTest();" />
+
+<br/><hr />
+Log:<br/>
+<textarea id="txtlog" rows="25" style="width:95%"></textarea>
+<br />
+
+<script type="text/javascript">
+
+var m_stream = null; // 当前的媒体流.
+var m_timerTakeVideo = null; // takeVideo的定时器.
+
+/** 追加日志.
+ *
+ * @param {*}	msg	日志信息.
+ */
+function addlog(msg) {
+	var txtlog = document.getElementById("txtlog");
+	//var strmsg = "" + msg;
+	var strmsg = zyl.json.DataJsonUtil.str(msg)
+	txtlog.value = txtlog.value + strmsg + "\r\n";
+}
+
+/** Do test.
+ */
+function doTest() {
+  new Promise(function (resolve, reject) {
+      setTimeout(function () {
+          console.log("First");
+          resolve();
+      }, 1000);
+  }).then(function () {
+      return new Promise(function (resolve, reject) {
+          setTimeout(function () {
+              console.log("Second");
+              resolve();
+          }, 4000);
+      });
+  }).then(function () {
+      setTimeout(function () {
+          console.log("Third");
+      }, 3000);
+  });
+}
+
+</script>
+</body>
+</html>
