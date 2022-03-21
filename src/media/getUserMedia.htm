@@ -22,8 +22,8 @@
 &nbsp; <input type="button" title="takeVideo(视频)" value="takeVideo" onclick="takeVideo();" />
 &nbsp; <input type="button" title="stopTakeVideo(停止视频)" value="stopTakeVideo" onclick="stopTakeVideo();" />
 <br />  
-<video id="myvideo" height="120px" autoplay="autoplay"></video>
- Photo:<canvas id="canvas1" height="120px" ></canvas>
+<video id="myvideo" width="160px" height="120px" autoplay="autoplay"></video>
+ Photo:<canvas id="canvas1" width="160px" height="120px" ></canvas>
  Video:<canvas id="canvas2" height="120px"></canvas>  
 
 <br/><hr />
@@ -38,13 +38,15 @@ Constraints sample:<br/>
  "video": true
 }
 
-{ audio: true, video: { facingMode: "user" } }
+{ "audio": false, "video": { "facingMode": "user" } }
 
-{ audio: true, video: { facingMode: { exact: "environment" } } }
+{ "audio": false, "video": { "facingMode": { "exact": "environment" } } }
+
+{ "video": { "deviceId": myPreferredCameraDeviceId } }
 
 {
-  audio: true,
-  video: {
+  "audio": true,
+  "video": {
     width: { min: 1024, ideal: 1280, max: 1920 },
     height: { min: 776, ideal: 720, max: 1080 }
   }
@@ -153,9 +155,11 @@ function openMedia() {
  */
 function takePhoto() {
 	var video = document.getElementById("myvideo");
-    var canvas1 = document.getElementById('canvas1');
-    var context1 = canvas1.getContext('2d');
-	context1.drawImage(video, 0, 0,90,120); //将video对象内指定的区域捕捉绘制到画布上指定的区域，实现拍照。
+	var canvas1 = document.getElementById('canvas1');
+	var context1 = canvas1.getContext('2d');
+	var width = 160;
+	var height = 120;
+	context1.drawImage(video, 0, 0,width,height); //将video对象内指定的区域捕捉绘制到画布上指定的区域，实现拍照。
 	// imgdata.
 	var imgformat = "image/jpeg";
 	var imgdata = canvas1.toDataURL(imgformat);

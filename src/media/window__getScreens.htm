@@ -1,0 +1,157 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<title>window__getScreens (Multi-Screen Window Placement API)</title>
+<style>
+#demo{width: 600px;}
+#demo .warning {font-size: 14px; color: #f00}
+#demo .buttons input[type="button"] {height: 40px; font-size: 15px; margin-right: 20px; color: #fff; background: #389e88; border: 0; border-radius: 5px;}
+#demo .buttons input[type="button"]:active {background: rgb(10, 233, 10)}
+#demo .screens {margin-top: 10px}
+#demo .screens dl {background: #ccc; font-size: 13px; line-height: 20px; margin-top: 10px; padding: 10px}
+#demo .screens dt {font-size: 16px; font-weight: bold; color: #1d3bd2; margin-bottom: 10px}
+#demo .screens dd {padding: 0; margin: 0;}
+</style>
+</head>
+<body>
+<h1>window__getScreens (Multi-Screen Window Placement API)</h1>
+
+<div id="demo">
+    <strong class="warning"></strong>
+    <div class="buttons"></div>
+    <div class="screens"></div>
+</div>
+
+<br />
+<textarea id="txtlog" rows="25" readonly style="width:95%"></textarea>
+
+<script type="text/javascript">
+
+function addlog(msg) {
+	var txtlog = document.getElementById("txtlog");
+	//var strmsg = "" + msg;
+	var strmsg = msg + "";
+	txtlog.value = txtlog.value + strmsg + "\r\n";
+}
+
+function showScreen() {
+  addlog("[Window.screen]");
+  var screen = window.screen;
+  addlog("availTop:\t" + screen["availTop"]);
+  addlog("availLeft:\t" + screen["availLeft"]);
+  addlog("availHeight:\t" + screen["availHeight"]);
+  addlog("availWidth:\t" + screen["availWidth"]);
+  addlog("colorDepth:\t" + screen["colorDepth"]);
+  addlog("height:\t" + screen["height"]);
+  addlog("left:\t" + screen["left"]);
+  var orientation = screen["orientation"];
+  if (!!orientation) {
+	  addlog("orientation.type:\t" + orientation["type"]);
+	  addlog("orientation.angle:\t" + orientation["angle"]);
+  }
+  addlog("pixelDepth:\t" + screen["pixelDepth"]);
+  addlog("top:\t" + screen["top"]);
+  addlog("width:\t" + screen["width"]);
+  addlog("mozEnabled:\t" + screen["mozEnabled"]);
+  addlog("mozBrightness:\t" + screen["mozBrightness"]);
+}
+
+class MultiScreen {
+    constructor() {
+        const _this = this;
+        _this.screens = [];
+        _this.init();
+    }
+    async init() {
+        const _this = this;
+        if (!('getScreens' in self)) {
+            alert('你的chrome版本不支持该功能！');
+        } else if ('isMultiScreen' in self && !(await isMultiScreen())) {
+            alert('请接入多个显示屏查看该demo！');
+        } else {
+            const permission = await navigator.permissions.query({
+                name: 'window-placement'
+            });
+            permission.addEventListener('change', () => {
+                _this.updateScreensInfo();
+            });
+            if ('onscreenschange' in self) {
+                window.addEventListener('screenschange', () => {
+                    _this.updateScreensInfo();
+                });
+                _this.updateScreensInfo();
+            }
+        }
+    }
+    async getScreensData() {
+        const _this = this;
+        _this.screens = (await getScreens().catch(_ => {})) || [window.screen];
+    }
+    async updateScreensInfo() {
+        const _this = this;
+        let buttons = [];
+        let screens = [];
+ 
+ 
+        await _this.getScreensData();
+ 
+ 
+        const permission = await navigator.permissions.query({
+            name: 'window-placement'
+        });
+ 
+ 
+        if (permission.state === 'denied') {
+            document.querySelector('#demo .warning').innerHTML = '您禁用了窗口放置权限，请开启使用';
+        }
+ 
+ 
+        _this.screens.forEach((item, index) => {
+            buttons.push(`
+                <input type="button" value="在第 ${index + 1} 个显示屏中打开" data-index="${index + 1}">
+            `);
+            screens.push(`
+                <dl>
+                    <dt>screen ${index + 1} :</dt>
+                    <dd>
+                        id: ${item.id}<br>
+                        width: ${item.width}<br>
+                        height: ${item.height}<br>
+                        availWidth: ${item.availWidth}<br>
+                        availHeight: ${item.availHeight}<br>
+                        left: ${item.left}<br>
+                        top: ${item.top}<br>
+                        primary: ${item.primary}<br>
+                        internal: ${item.internal}<br>
+                        touchSupport: ${item.touchSupport}<br>
+                    </dd>
+                </dl>
+            `);
+        });
+        document.querySelector('#demo .buttons').innerHTML = buttons.join('');
+        document.querySelector('#demo .screens').innerHTML = screens.join('');
+        document.querySelectorAll('#demo input[type="button"]').forEach((item, index) => {
+            item.addEventListener('click', () => _this.openWin(index, screens[index]));
+        });
+    }
+    openWin(index, html) {
+        const _this = this;
+        const screen = _this.screens[index];
+        const optionsStr = `
+            width=400,
+            height=300,
+            left=${screen.availLeft + (screen.availWidth / 2) - 200},
+            top=${screen.availTop + (screen.availHeight / 2) - 150}
+        `;
+        const win = window.open('about:blank', '_blank', optionsStr);
+        win.document.write(html);
+    }
+}
+new MultiScreen();
+showScreen();
+
+
+</script>
+</body>
+</html>
