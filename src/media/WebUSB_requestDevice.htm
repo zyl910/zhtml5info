@@ -1,0 +1,23 @@
+<html>
+	<header>
+		<title>WebUSB_requestDevice</title>
+	</header>
+<body>
+    <button id="usb">Connect to a USB Device</button>
+    <script>
+// https://cloud.tencent.com/developer/ask/sof/329845
+        document.getElementById('usb').addEventListener('click',function(){
+            if (navigator.usb) {
+                navigator.usb.requestDevice({
+                    filters: []
+                })
+                .then(function(device){
+                    document.body.innerHTML +=
+                        device.manufacturerName + ', ' +
+                        device.productName;
+                });
+            }
+        });
+    </script>
+</body>
+</html>
