@@ -1,0 +1,182 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<title>WebUSB_demo</title>
+</head>
+<body>
+<h1>WebUSB_demo</h1>
+
+<input type="button" title="List(获取列表)" value="List" onclick="doList();" />
+&nbsp; <input type="button" title="Open(打开)" value="Open" onclick="doOpen();" />
+&nbsp; <input type="button" title="Close(关闭)" value="Close" onclick="doClose();" />
+&nbsp; <input type="button" title="test(测试)" value="test" onclick="doTest();" />
+<br />  
+<textarea id="txtfilters" rows="6" style="width:95%" >
+{
+  "filters": [{"vendorId": 1899}]
+}
+</textarea><br/>
+
+<br/><hr />
+Log:<br/>
+<textarea id="txtlog" rows="25" style="width:95%"></textarea>
+<br />
+<hr />
+Filters sample:<br/>
+<textarea id="txtfilterssample" rows="30" style="width:95%" readonly>
+{
+  "filters": []
+}
+
+{
+  "filters": [{"vendorId": 1899}]
+}
+
+vendorId
+productId
+classCode
+subclassCode
+protocolCode
+serialNumber
+
+</textarea><br/>
+
+<script type="text/javascript">
+var _usbDevice = null; // Current USBDevice.
+
+function toStr(msg) {
+	var strmsg = "" + msg;
+	if (typeof(msg)==="object" && !(msg instanceof Error)) {
+		try {
+			strmsg = JSON.stringify(msg);
+		} catch(ex) {
+			console.log("JSON.stringify fail! ", msg);
+		}
+	}
+	return strmsg;
+}
+
+/** 追加日志.
+ *
+ * @param {*}	msg	日志信息.
+ */
+function addlog(msg) {
+	var txtlog = document.getElementById("txtlog");
+	var strmsg = toStr(msg);
+	if (txtlog.value.length>50000) txtlog.value="";
+	txtlog.value = txtlog.value + strmsg + "\r\n";
+	txtlog.scrollTop = txtlog.scrollHeight;
+}
+
+function jsonByUsbDevice(p) {
+	if (!p) return null;
+	var rt = {
+		"deviceProtocol": p.deviceProtocol,
+		"deviceClass": p.deviceClass,
+		"deviceSubclass": p.deviceSubclass,
+		"deviceVersionMajor": p.deviceVersionMajor,
+		"deviceVersionMinor": p.deviceVersionMinor,
+		"deviceVersionSubminor": p.deviceVersionSubminor,
+		"manufacturerName": p.manufacturerName,
+		"opened": p.opened,
+		"productId": p.productId,
+		"productName": p.productName,
+		"serialNumber": p.serialNumber,
+		"usbVersionMajor": p.usbVersionMajor,
+		"usbVersionMinor": p.usbVersionMinor,
+		"usbVersionSubminor": p.usbVersionSubminor,
+		"vendorId": p.vendorId
+	};
+	return rt;
+}
+
+/** Do test (测试).
+ */
+function doTest() {
+	var e = new RangeError("Test RangeError!");
+	addlog(a);
+}
+
+/** Do list (获取列表).
+ */
+function doList() {
+	if (!navigator.usb) {
+		var msg = 'WebUSB (navigator.usb) not supported in this browser.';
+		addlog(msg);
+		return;
+	}
+	navigator.usb.getDevices().then(function(devices){
+		console.log("List done. ", devices);
+		addlog("List done. length=" + devices.length);
+		var i;
+		for(i=0; i<devices.length; ++i) {
+			addlog(i + ": " + toStr(jsonByUsbDevice(devices[i])));
+		}
+		return devices;
+	}).catch(function(reason){
+		addlog("List fail! " + toStr(reason));
+		return Promise.reject(reason);
+	});
+}
+
+/** close (关闭设备).
+ */
+function doClose() {
+	if (!_usbDevice) return;
+	try {
+		if (_usbDevice.opened) {
+			_usbDevice.close().then(function(val){
+				addlog("Close done. " + toStr(val));
+				return val;
+			}).catch(function(reason){
+				addlog("Close fail! " + toStr(reason));
+				return Promise.reject(reason);
+			});
+		}
+	} catch(ex) {
+		addlog(ex);
+	}
+	_usbDevice = null;
+}
+
+/** open (打开设备).
+ */
+function doOpen() {
+	if (!navigator.usb) {
+		var msg = 'WebUSB (navigator.usb) not supported in this browser.';
+		addlog(msg);
+		return;
+	}
+	// close.
+	doClose();
+	// open.
+	try {
+		var txtfilters = document.getElementById("txtfilters");
+		var strfilters = txtfilters.value;
+		var filters = JSON.parse(strfilters);
+		// open.
+		navigator.usb.requestDevice(filters).then(function(device){
+			console.log("Open done. ", device);
+			addlog("Open done. " + toStr(jsonByUsbDevice(device)));
+			if (null!=device) {
+				_usbDevice = device;
+			}
+			return device;
+		}).catch(function(reason){
+			addlog("Open fail! " + toStr(reason));
+			return Promise.reject(reason);
+		});
+	} catch(ex) {
+		addlog(ex);
+	}
+}
+
+/** 初始化. */
+function init() {
+}
+init();
+
+</script>
+</body>
+</html>
