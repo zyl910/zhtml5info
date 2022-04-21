@@ -157,14 +157,22 @@ function doOpen() {
 		var filters = JSON.parse(strfilters);
 		// open.
 		navigator.usb.requestDevice(filters).then(function(device){
-			console.log("Open done. ", device);
-			addlog("Open done. " + toStr(jsonByUsbDevice(device)));
+			console.log("RequestDevice done. ", device);
+			addlog("RequestDevice done. " + toStr(jsonByUsbDevice(device)));
 			if (null!=device) {
 				_usbDevice = device;
+				_usbDevice.open().then(function(val){
+					console.log("Open done. ", val);
+					addlog("Open done. " + toStr(val));
+					return val;
+				}).catch(function(reason){
+					addlog("Open fail! " + toStr(reason));
+					return Promise.reject(reason);
+				});
 			}
 			return device;
 		}).catch(function(reason){
-			addlog("Open fail! " + toStr(reason));
+			addlog("RequestDevice fail! " + toStr(reason));
 			return Promise.reject(reason);
 		});
 	} catch(ex) {
