@@ -11,6 +11,7 @@
 &nbsp; <input type="button" title="Open(打开)" value="Open" onclick="doOpen();" />
 &nbsp; <input type="button" title="Close(关闭)" value="Close" onclick="doClose();" />
 &nbsp; <input type="button" title="test(测试)" value="test" onclick="doTest();" />
+&nbsp; <input type="button" title="testOmnikey(测试)" value="testOmnikey" onclick="testOmnikey();" />
 <br />  
 <textarea id="txtfilters" rows="6" style="width:95%" >
 {
@@ -88,6 +89,56 @@ function jsonByUsbDevice(p) {
 		"usbVersionSubminor": p.usbVersionSubminor,
 		"vendorId": p.vendorId
 	};
+	return rt;
+}
+
+function getUint8ArrayByHex(hex) {
+	if (typeof(hex)!=="string") return null;
+	var hexlen = hex.length;
+	var cnt = Math.floor( (hexlen + 1) / 2 );
+	var rt = new Uint8Array(cnt);
+	if (cnt<=0) return rt;
+	var curByte = 0;
+	var curCount = 0;
+	cnt = 0;
+	var i;
+	for(i=0; i<hexlen; ++i) {
+		var ch = hex[i];
+		// decode.
+		var n = -1;
+		if ('0'<=ch && ch<='9') {
+			n = ch.charCodeAt(0) - '0'.charCodeAt(0);
+		} else if ('A'<=ch && ch<='F') {
+			n = ch.charCodeAt(0) - 'A'.charCodeAt(0);
+		} else if ('a'<=ch && ch<='f') {
+			n = ch.charCodeAt(0) - 'a'.charCodeAt(0);
+		}
+		// append.
+		if (n>=0) {
+			curByte = curByte*0x10 + n;
+			if (curCount<1) {
+				rt[cnt++] = curByte;
+				curByte = 0;
+				curCount = 0;
+			} else {
+				++curCount;
+			}
+		} else {
+			if (curCount>0) {
+				rt[cnt++] = curByte;
+				curByte = 0;
+				curCount = 0;
+			}
+		}
+	}
+	if (curCount>0) {
+		rt[cnt++] = curByte;
+		curByte = 0;
+		curCount = 0;
+	}
+	if (cnt<rt.length) {
+		rt = rt.slice(0, cnt);
+	}
 	return rt;
 }
 
@@ -173,6 +224,37 @@ function doOpen() {
 			return device;
 		}).catch(function(reason){
 			addlog("RequestDevice fail! " + toStr(reason));
+			return Promise.reject(reason);
+		});
+	} catch(ex) {
+		addlog(ex);
+	}
+}
+
+function testOmnikey() {
+	var req = "FFCA000000";
+	addlog("req: " + req);
+	var reqBytes = getUint8ArrayByHex(req);
+	console.log("req: ", reqBytes);
+	// send.
+	if (!_usbDevice || !_usbDevice.opened) return;
+	var endpointOut = 2;
+	var endpointIn = 3;
+	try {
+		_usbDevice.transferOut(endpointOut, reqBytes).then(function(aout){
+			console.log("transferOut done. ", aout);
+			addlog("transferOut done. " + toStr(aout));
+			_usbDevice.transferIn(endpointIn, 100).then(function(ain){
+				console.log("transferIn done. ", ain);
+				addlog("transferIn done. " + toStr(ain));
+				return ain;
+			}).catch(function(reason){
+				addlog("transferIn fail! " + toStr(reason));
+				return Promise.reject(reason);
+			});
+			return aout;
+		}).catch(function(reason){
+			addlog("transferOut fail! " + toStr(reason));
 			return Promise.reject(reason);
 		});
 	} catch(ex) {
