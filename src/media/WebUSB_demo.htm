@@ -242,20 +242,42 @@ function testOmnikey() {
 	var endpointOut = 2;
 	var endpointIn = 3;
 	var mainMessage = "";
+	var releaseInterfaceProc = function() {
+		if (!_usbDevice) return;
+		_usbDevice.releaseInterface(interfaceNumber).then(function(v0){
+			console.log("releaseInterface done. ", v0);
+		}, function(reason){
+			console.log("releaseInterface fail! ", reason);
+			return Promise.reject(reason);
+		});
+	}
 	try {
-		_usbDevice.transferOut(endpointOut, reqBytes).then(function(aout){
-			console.log("transferOut done. ", aout);
-			addlog("transferOut done. " + toStr(aout));
-			return _usbDevice.transferIn(endpointIn, 100).then(function(ain){
-				console.log("transferIn done. ", ain);
-				addlog("transferIn done. " + toStr(ain));
+		_usbDevice.claimInterface(interfaceNumber).then(function(v1){
+			console.log("claimInterface done. ", v1);
+			addlog("claimInterface done. " + toStr(v1));
+			return _usbDevice.transferOut(endpointOut, reqBytes).then(function(aout){
+				console.log("transferOut done. ", aout);
+				addlog("transferOut done. " + toStr(aout));
+				return _usbDevice.transferIn(endpointIn, 100).then(function(ain){
+					console.log("transferIn done. ", ain);
+					addlog("transferIn done. " + toStr(ain));
+					return ain;
+				}, function(reason){
+					mainMessage = "transferIn fail! " + mainMessage;
+					return Promise.reject(reason);
+				});
+			}, function(reason){
+				mainMessage = "transferOut fail! " + mainMessage;
+				return Promise.reject(reason);
+			}).then(function(ain){
+				releaseInterfaceProc();
 				return ain;
 			}, function(reason){
-				mainMessage = "transferIn fail! " + mainMessage;
+				releaseInterfaceProc();
 				return Promise.reject(reason);
 			});
 		}, function(reason){
-			mainMessage = "transferOut fail! " + mainMessage;
+			mainMessage = "claimInterface fail! " + mainMessage;
 			return Promise.reject(reason);
 		}).catch(function(reason){
 			if (!mainMessage) mainMessage = "Run transferOut fail!";
