@@ -238,27 +238,33 @@ function testOmnikey() {
 	console.log("req: ", reqBytes);
 	// send.
 	if (!_usbDevice || !_usbDevice.opened) return;
+	var interfaceNumber = 0;
 	var endpointOut = 2;
 	var endpointIn = 3;
+	var mainMessage = "";
 	try {
 		_usbDevice.transferOut(endpointOut, reqBytes).then(function(aout){
 			console.log("transferOut done. ", aout);
 			addlog("transferOut done. " + toStr(aout));
-			_usbDevice.transferIn(endpointIn, 100).then(function(ain){
+			return _usbDevice.transferIn(endpointIn, 100).then(function(ain){
 				console.log("transferIn done. ", ain);
 				addlog("transferIn done. " + toStr(ain));
 				return ain;
-			}).catch(function(reason){
-				addlog("transferIn fail! " + toStr(reason));
+			}, function(reason){
+				mainMessage = "transferIn fail! " + mainMessage;
 				return Promise.reject(reason);
 			});
-			return aout;
+		}, function(reason){
+			mainMessage = "transferOut fail! " + mainMessage;
+			return Promise.reject(reason);
 		}).catch(function(reason){
-			addlog("transferOut fail! " + toStr(reason));
+			if (!mainMessage) mainMessage = "Run transferOut fail!";
+			addlog(mainMessage + " " + toStr(reason));
 			return Promise.reject(reason);
 		});
 	} catch(ex) {
-		addlog(ex);
+		if (!mainMessage) mainMessage = "Call transferOut fail!";
+		addlog(mainMessage + " " + toStr(reason));
 	}
 }
 
