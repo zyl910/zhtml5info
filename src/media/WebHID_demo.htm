@@ -1,0 +1,288 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<title>WebHID_demo</title>
+</head>
+<body>
+<h1>WebHID_demo</h1>
+
+<input type="button" title="List(获取列表)" value="List" onclick="doList();" />
+&nbsp; <input type="button" title="Open(打开)" value="Open" onclick="doOpen();" />
+&nbsp; <input type="button" title="Close(关闭)" value="Close" onclick="doClose();" />
+&nbsp; <input type="button" title="test(测试)" value="test" onclick="doTest();" />
+&nbsp; <input type="button" title="testOmnikey(测试)" value="testOmnikey" onclick="testOmnikey();" />
+<br />  
+<textarea id="txtfilters" rows="6" style="width:95%" >
+{
+  "filters": []
+}
+</textarea><br/>
+
+<br/><hr />
+Log:<br/>
+<textarea id="txtlog" rows="25" style="width:95%"></textarea>
+<br />
+<hr />
+Filters sample:<br/>
+<textarea id="txtfilterssample" rows="30" style="width:95%" readonly>
+{
+  "filters": []
+}
+
+{
+  "filters": [{"vendorId": 1899}]
+}
+
+vendorId
+productId
+usagePage
+usage
+
+</textarea><br/>
+
+<script type="text/javascript">
+var _hidDevice = null; // Current USBDevice.
+
+function toStr(msg) {
+	var strmsg = "" + msg;
+	if (typeof(msg)==="object" && !(msg instanceof Error)) {
+		try {
+			strmsg = JSON.stringify(msg);
+		} catch(ex) {
+			console.log("JSON.stringify fail! ", msg);
+		}
+	}
+	return strmsg;
+}
+
+/** 追加日志.
+ *
+ * @param {*}	msg	日志信息.
+ */
+function addlog(msg) {
+	var txtlog = document.getElementById("txtlog");
+	var strmsg = toStr(msg);
+	if (txtlog.value.length>50000) txtlog.value="";
+	txtlog.value = txtlog.value + strmsg + "\r\n";
+	txtlog.scrollTop = txtlog.scrollHeight;
+}
+
+function jsonByHIDDevice(p) {
+	if (!p) return null;
+	var rt = {
+		"opened": p.opened,
+		"productId": p.productId,
+		"productName": p.productName,
+		"vendorId": p.vendorId
+	};
+	return rt;
+}
+
+function getUint8ArrayByHex(hex) {
+	if (typeof(hex)!=="string") return null;
+	var hexlen = hex.length;
+	var cnt = Math.floor( (hexlen + 1) / 2 );
+	var rt = new Uint8Array(cnt);
+	if (cnt<=0) return rt;
+	var curByte = 0;
+	var curCount = 0;
+	cnt = 0;
+	var i;
+	for(i=0; i<hexlen; ++i) {
+		var ch = hex[i];
+		// decode.
+		var n = -1;
+		if ('0'<=ch && ch<='9') {
+			n = ch.charCodeAt(0) - '0'.charCodeAt(0);
+		} else if ('A'<=ch && ch<='F') {
+			n = ch.charCodeAt(0) - 'A'.charCodeAt(0);
+		} else if ('a'<=ch && ch<='f') {
+			n = ch.charCodeAt(0) - 'a'.charCodeAt(0);
+		}
+		// append.
+		if (n>=0) {
+			curByte = curByte*0x10 + n;
+			if (curCount<1) {
+				rt[cnt++] = curByte;
+				curByte = 0;
+				curCount = 0;
+			} else {
+				++curCount;
+			}
+		} else {
+			if (curCount>0) {
+				rt[cnt++] = curByte;
+				curByte = 0;
+				curCount = 0;
+			}
+		}
+	}
+	if (curCount>0) {
+		rt[cnt++] = curByte;
+		curByte = 0;
+		curCount = 0;
+	}
+	if (cnt<rt.length) {
+		rt = rt.slice(0, cnt);
+	}
+	return rt;
+}
+
+/** Do test (测试).
+ */
+function doTest() {
+	var e = new RangeError("Test RangeError!");
+	addlog(a);
+}
+
+/** Do list (获取列表).
+ */
+function doList() {
+	if (!navigator.hid) {
+		var msg = 'WebHID (navigator.hid) not supported in this browser.';
+		addlog(msg);
+		return;
+	}
+	navigator.hid.getDevices().then(function(devices){
+		console.log("List done. ", devices);
+		addlog("List done. length=" + devices.length);
+		var i;
+		for(i=0; i<devices.length; ++i) {
+			addlog(i + ": " + toStr(jsonByHIDDevice(devices[i])));
+		}
+		return devices;
+	}).catch(function(reason){
+		addlog("List fail! " + toStr(reason));
+		return Promise.reject(reason);
+	});
+}
+
+/** close (关闭设备).
+ */
+function doClose() {
+	if (!_hidDevice) return;
+	try {
+		if (_hidDevice.opened) {
+			_hidDevice.close().then(function(val){
+				addlog("Close done. " + toStr(val));
+				return val;
+			}).catch(function(reason){
+				addlog("Close fail! " + toStr(reason));
+				return Promise.reject(reason);
+			});
+		}
+	} catch(ex) {
+		addlog(ex);
+	}
+	_hidDevice = null;
+}
+
+/** open (打开设备).
+ */
+function doOpen() {
+	if (!navigator.hid) {
+		var msg = 'WebHID (navigator.hid) not supported in this browser.';
+		addlog(msg);
+		return;
+	}
+	// close.
+	doClose();
+	// open.
+	try {
+		var txtfilters = document.getElementById("txtfilters");
+		var strfilters = txtfilters.value;
+		var filters = JSON.parse(strfilters);
+		// open.
+		navigator.hid.requestDevice(filters).then(function(device){
+			console.log("RequestDevice done. ", device);
+			if (null!=device) {
+				_hidDevice = device;
+				if (_hidDevice instanceof Array) _hidDevice = device[0];
+				addlog("RequestDevice done. " + toStr(jsonByHIDDevice(_hidDevice)));
+				_hidDevice.open().then(function(val){
+					console.log("Open done. ", val);
+					addlog("Open done. " + toStr(val));
+					return val;
+				}).catch(function(reason){
+					addlog("Open fail! " + toStr(reason));
+					return Promise.reject(reason);
+				});
+			}
+			return device;
+		}).catch(function(reason){
+			addlog("RequestDevice fail! " + toStr(reason));
+			return Promise.reject(reason);
+		});
+	} catch(ex) {
+		addlog(ex);
+	}
+}
+
+function testOmnikey() {
+	var req = "FFCA000000";
+	addlog("req: " + req);
+	var reqBytes = getUint8ArrayByHex(req);
+	console.log("req: ", reqBytes);
+	// send.
+	if (!_hidDevice || !_hidDevice.opened) return;
+	var interfaceNumber = 0;
+	var endpointOut = 2;
+	var endpointIn = 3;
+	var mainMessage = "";
+	var releaseInterfaceProc = function() {
+		if (!_hidDevice) return;
+		_hidDevice.releaseInterface(interfaceNumber).then(function(v0){
+			console.log("releaseInterface done. ", v0);
+		}, function(reason){
+			console.log("releaseInterface fail! ", reason);
+			return Promise.reject(reason);
+		});
+	}
+	try {
+		_hidDevice.claimInterface(interfaceNumber).then(function(v1){
+			console.log("claimInterface done. ", v1);
+			addlog("claimInterface done. " + toStr(v1));
+			return _hidDevice.transferOut(endpointOut, reqBytes).then(function(aout){
+				console.log("transferOut done. ", aout);
+				addlog("transferOut done. " + toStr(aout));
+				return _hidDevice.transferIn(endpointIn, 100).then(function(ain){
+					console.log("transferIn done. ", ain);
+					addlog("transferIn done. " + toStr(ain));
+					return ain;
+				}, function(reason){
+					mainMessage = "transferIn fail! " + mainMessage;
+					return Promise.reject(reason);
+				});
+			}, function(reason){
+				mainMessage = "transferOut fail! " + mainMessage;
+				return Promise.reject(reason);
+			}).then(function(ain){
+				releaseInterfaceProc();
+				return ain;
+			}, function(reason){
+				releaseInterfaceProc();
+				return Promise.reject(reason);
+			});
+		}, function(reason){
+			mainMessage = "claimInterface fail! " + mainMessage;
+			return Promise.reject(reason);
+		}).catch(function(reason){
+			if (!mainMessage) mainMessage = "Run transferOut fail!";
+			addlog(mainMessage + " " + toStr(reason));
+			return Promise.reject(reason);
+		});
+	} catch(ex) {
+		if (!mainMessage) mainMessage = "Call transferOut fail!";
+		addlog(mainMessage + " " + toStr(reason));
+	}
+}
+
+/** 初始化. */
+function init() {
+}
+init();
+
+</script>
+</body>
+</html>
