@@ -36,6 +36,12 @@
 		<option value="luminosity">luminosity</option>
 	</select>
 	<br/>
+	Destination color: <input id="txtdColor0" type="text" size="20" value="Blue" />
+	&nbsp;<input type="checkbox" id="chkdColor1" name="dColor" value="1" /> to <input id="txtdColor1" type="text" size="20" value="Cyan" />
+	<br/>
+	Source &nbsp; &nbsp; &nbsp; &nbsp;color: <input id="txtsColor0" type="text" size="20" value="Red" />
+	&nbsp;<input type="checkbox" id="chksColor1" name="sColor" value="1" /> to <input id="txtsColor1" type="text" size="20" value="Black" />
+	<br/>
 	<span id="pointSpanTitle">Point: </span><span id="pointSpan"></span>
 	<br/>
 	<canvas id="canvas" width="600" height="600" onmousedown="ctx_mousedown(e)"></canvas>
@@ -44,11 +50,53 @@
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 
+function drawRectD(ctx, x, y, w, h, color0, color1) {
+	let flag = ("string"===typeof(color1)) && (color1.length>0) && (color0!=color1);
+	if (flag) {
+		ctx.fillStyle = color0;
+		ctx.fillRect(x, y, w, h);
+    var linear = ctx.createLinearGradient(0,0,w,0);
+    linear.addColorStop(0, color0);
+    linear.addColorStop(1, color1);
+    ctx.fillStyle = linear;
+		ctx.fillRect(x, y, w, h);
+	} else {
+		ctx.fillStyle = color0;
+		ctx.fillRect(x, y, w, h);
+	}
+}
+
+function drawRectS(ctx, x, y, w, h, color0, color1) {
+	let flag = ("string"===typeof(color1)) && (color1.length>0) && (color0!=color1);
+	if (flag) {
+		ctx.fillStyle = color0;
+		ctx.fillRect(x, y, w, h);
+    var linear = ctx.createLinearGradient(0,0,0,h);
+    linear.addColorStop(0, color0);
+    linear.addColorStop(1, color1);
+    ctx.fillStyle = linear;
+		ctx.fillRect(x, y, w, h);
+	} else {
+		ctx.fillStyle = color0;
+		ctx.fillRect(x, y, w, h);
+	}
+}
+
 function doRefresh() {
 	const cbotype = document.getElementById('cbotype');
 	let index = cbotype.selectedIndex;
 	let compositeType = "xor";
 	if (index>=0) compositeType = cbotype.options[index].value;
+	
+	// color
+	let dColor0 = document.getElementById('txtdColor0').value;
+	let dColor1 = document.getElementById('txtdColor1').value;
+	let sColor0 = document.getElementById('txtsColor0').value;
+	let sColor1 = document.getElementById('txtsColor1').value;
+	const chkdColor1 = document.getElementById('chkdColor1');
+	const chksColor1 = document.getElementById('chksColor1');
+	if (!chkdColor1.checked) dColor1=dColor0;
+	if (!chksColor1.checked) sColor1=sColor0;
 
 	// size
 	//const clientRect = canvas.getBoundingClientRect();
@@ -56,16 +104,22 @@ function doRefresh() {
 	
 	// clear
 	ctx.clearRect(0, 0, cw, ch);
+	try{
+		// destination
+		ctx.globalCompositeOperation = "source-over";
+		//ctx.fillStyle = 'blue';
+		//ctx.fillRect(50, 50, 100, 100);
+		drawRectD(ctx, 50, 50, 100, 100, dColor0, dColor1);
+		
+		// source-over
+		ctx.globalCompositeOperation = compositeType;
+		//ctx.fillStyle = 'red';
+		//ctx.fillRect(10, 10, 100, 100);
+		drawRectS(ctx, 10, 10, 100, 100, sColor0, sColor1);
+	} catch(ex) {
+		console.log("doRefresh fail! ", ev);
+	}
 	
-	// destination
-	ctx.globalCompositeOperation = "source-over";
-	ctx.fillStyle = 'blue';
-	ctx.fillRect(50, 50, 100, 100);
-	
-	// source-over
-	ctx.globalCompositeOperation = compositeType;
-	ctx.fillStyle = 'red';
-	ctx.fillRect(10, 10, 100, 100);
 }
 
 function ctx_mousedown(ev) {
