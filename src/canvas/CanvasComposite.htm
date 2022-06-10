@@ -4,7 +4,7 @@
 	<meta charset="utf-8">
 	<title>Canvas Composite (画布-合成)</title>
 </head>
-<body onload="doRefresh()">
+<body onload="body_load()">
 	<h1>Canvas Composite (画布-合成)</h1>
 	<button onclick="doRefresh()">Refresh</button>
 	&nbsp; globalCompositeOperation: <select id="cbotype" onchange="doRefresh()">
@@ -36,9 +36,13 @@
 		<option value="luminosity">luminosity</option>
 	</select>
 	<br/>
-	<canvas id="canvas" width="600" height="600"></canvas>
+	<span id="pointSpanTitle">Point: </span><span id="pointSpan"></span>
+	<br/>
+	<canvas id="canvas" width="600" height="600" onmousedown="ctx_mousedown(e)"></canvas>
 	<script>
 // https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/globalCompositeOperation
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
 
 function doRefresh() {
 	const cbotype = document.getElementById('cbotype');
@@ -46,13 +50,11 @@ function doRefresh() {
 	let compositeType = "xor";
 	if (index>=0) compositeType = cbotype.options[index].value;
 
-	// canvas
-	const canvas = document.getElementById('canvas');
+	// size
 	//const clientRect = canvas.getBoundingClientRect();
 	const cw = canvas.width, ch = canvas.height;
 	
 	// draw
-	const ctx = canvas.getContext('2d');
 	ctx.clearRect(0, 0, cw, ch);
 	
 	ctx.globalCompositeOperation = compositeType;
@@ -63,6 +65,30 @@ function doRefresh() {
 	ctx.fillStyle = 'red';
 	ctx.fillRect(50, 50, 100, 100);
 }
+
+function ctx_mousedown(ev) {
+	//console.log("mousedown: ", ev);
+	if (null==ev) return;
+  var rect = canvas.getBoundingClientRect();
+  var x = Math.floor(ev.clientX - rect.left * (canvas.width / rect.width));
+  var y = Math.floor(ev.clientY - rect.top * (canvas.height / rect.height));
+  var pixel = ctx.getImageData(x, y, 1, 1);
+  var data = pixel.data;
+  const rgba = `rgba(${data[0]}, ${data[1]}, ${data[2]}, ${data[3] / 255})`;
+	console.log("Point(",x,", ",y,"): ", rgba);
+	var msg = "("+x+", "+y+"): " + rgba;
+	// show.
+	const pointSpanTitle = document.getElementById('pointSpanTitle');
+	const pointSpan = document.getElementById('pointSpan');
+	pointSpanTitle.style.background = rgba;
+	pointSpan.textContent = rgba;
+}
+
+function body_load() {
+	canvas.onmousedown = ctx_mousedown;
+	doRefresh();
+}
+
 	</script>
 	<br/>
         <table id="color" border="1" cellspacing="4" cellpadding="4" width="600">
