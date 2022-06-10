@@ -7,17 +7,55 @@
 <body onload="doRefresh()">
 	<h1>Canvas Composite (画布-合成)</h1>
 	<button onclick="doRefresh()">Refresh</button>
+	&nbsp; globalCompositeOperation: <select id="cbotype" onchange="doRefresh()">
+		<option value="source-over">source-over</option>
+		<option value="source-in">source-in</option>
+		<option value="source-out">source-out</option>
+		<option value="source-atop">source-atop</option>
+		<option value="destination-over">destination-over</option>
+		<option value="destination-in">destination-in</option>
+		<option value="destination-out">destination-out</option>
+		<option value="destination-atop">destination-atop</option>
+		<option value="lighter">lighter</option>
+		<option value="copy">copy</option>
+		<option value="xor" selected="selected">xor</option>
+		<option value="multiply">multiply</option>
+		<option value="screen">screen</option>
+		<option value="overlay">overlay</option>
+		<option value="darken">darken</option>
+		<option value="lighten">lighten</option>
+		<option value="color-dodge">color-dodge</option>
+		<option value="color-burn">color-burn</option>
+		<option value="hard-light">hard-light</option>
+		<option value="soft-light">soft-light</option>
+		<option value="difference">difference</option>
+		<option value="exclusion">exclusion</option>
+		<option value="hue">hue</option>
+		<option value="saturation">saturation</option>
+		<option value="color">color</option>
+		<option value="luminosity">luminosity</option>
+	</select>
 	<br/>
 	<canvas id="canvas" width="600" height="600"></canvas>
 	<script>
+// https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/globalCompositeOperation
+
 function doRefresh() {
+	const cbotype = document.getElementById('cbotype');
+	let index = cbotype.selectedIndex;
+	let compositeType = "xor";
+	if (index>=0) compositeType = cbotype.options[index].value;
+
+	// canvas
 	const canvas = document.getElementById('canvas');
-	const ctx = canvas.getContext('2d');
+	//const clientRect = canvas.getBoundingClientRect();
 	const cw = canvas.width, ch = canvas.height;
-	const clientRect = canvas.getBoundingClientRect();
+	
+	// draw
+	const ctx = canvas.getContext('2d');
 	ctx.clearRect(0, 0, cw, ch);
 	
-	ctx.globalCompositeOperation = 'xor';
+	ctx.globalCompositeOperation = compositeType;
 	
 	ctx.fillStyle = 'blue';
 	ctx.fillRect(10, 10, 100, 100);
