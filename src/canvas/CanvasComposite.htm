@@ -37,14 +37,20 @@
 	</select>
 	<br/>
 	Destination color: <input id="txtdColor0" type="text" size="20" value="Blue" />
-	&nbsp;<input type="checkbox" id="chkdColor1" name="dColor" value="1" /> to <input id="txtdColor1" type="text" size="20" value="Cyan" />
+	&nbsp;<input type="checkbox" id="chkdColor1" name="dColor" value="1" onchange="doRefresh()" />
+	&nbsp; to <input id="txtdColor1" type="text" size="20" value="Cyan" />
 	<br/>
 	Source &nbsp; &nbsp; &nbsp; &nbsp;color: <input id="txtsColor0" type="text" size="20" value="Red" />
-	&nbsp;<input type="checkbox" id="chksColor1" name="sColor" value="1" /> to <input id="txtsColor1" type="text" size="20" value="Black" />
+	&nbsp;<input type="checkbox" id="chksColor1" name="sColor" value="1" onchange="doRefresh()" />
+	&nbsp; to <input id="txtsColor1" type="text" size="20" value="Black" />
 	<br/>
 	<span id="pointSpanTitle">Point: </span><span id="pointSpan"></span>
 	<br/>
 	<canvas id="canvas" width="600" height="600" onmousedown="ctx_mousedown(e)"></canvas>
+	<br/>
+	[overlayOffset, overlay]<br/>
+	[destination, source]<br/>
+	<br/>
 	<script>
 // https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/globalCompositeOperation
 const canvas = document.getElementById('canvas');
@@ -55,7 +61,7 @@ function drawRectD(ctx, x, y, w, h, color0, color1) {
 	if (flag) {
 		ctx.fillStyle = color0;
 		ctx.fillRect(x, y, w, h);
-    var linear = ctx.createLinearGradient(0,0,w,0);
+    var linear = ctx.createLinearGradient(x,y,x+w,y);
     linear.addColorStop(0, color0);
     linear.addColorStop(1, color1);
     ctx.fillStyle = linear;
@@ -71,7 +77,7 @@ function drawRectS(ctx, x, y, w, h, color0, color1) {
 	if (flag) {
 		ctx.fillStyle = color0;
 		ctx.fillRect(x, y, w, h);
-    var linear = ctx.createLinearGradient(0,0,0,h);
+    var linear = ctx.createLinearGradient(x,y,x,y+h);
     linear.addColorStop(0, color0);
     linear.addColorStop(1, color1);
     ctx.fillStyle = linear;
@@ -101,23 +107,51 @@ function doRefresh() {
 	// size
 	//const clientRect = canvas.getBoundingClientRect();
 	const cw = canvas.width, ch = canvas.height;
+	let blockWidth = Math.floor(cw/4);
+	let blockHeight = Math.floor(ch/4);
+	let blockLeft = Math.floor(blockWidth/2);
+	let blockTop = Math.floor(blockHeight/2);
+	let offsetX = Math.floor(blockWidth/4);
+	let offsetY = Math.floor(blockHeight/4);
 	
 	// clear
 	ctx.clearRect(0, 0, cw, ch);
 	try{
-		// destination
-		ctx.globalCompositeOperation = "source-over";
 		//ctx.fillStyle = 'blue';
 		//ctx.fillRect(50, 50, 100, 100);
-		drawRectD(ctx, 50, 50, 100, 100, dColor0, dColor1);
-		
-		// source-over
-		ctx.globalCompositeOperation = compositeType;
+		//ctx.globalCompositeOperation = compositeType;
 		//ctx.fillStyle = 'red';
 		//ctx.fillRect(10, 10, 100, 100);
-		drawRectS(ctx, 10, 10, 100, 100, sColor0, sColor1);
+
+		// Raw destination, source : Bottom Left/Right
+		ctx.globalCompositeOperation = "source-over";
+		drawRectD(ctx, blockLeft, blockHeight*2+blockTop, blockWidth, blockHeight, dColor0, dColor1);
+		drawRectS(ctx, blockWidth*2+blockLeft, blockHeight*2+blockTop, blockWidth, blockHeight, sColor0, sColor1);
+		
+		// Top Left
+		ctx.globalCompositeOperation = "source-over";
+		drawRectD(ctx, blockLeft, blockTop, blockWidth, blockHeight, dColor0, dColor1);
+		ctx.save();
+		ctx.beginPath();
+		ctx.rect(0, 0, blockWidth*2, blockHeight*2);
+		ctx.clip();
+		ctx.globalCompositeOperation = compositeType;
+		drawRectS(ctx, blockLeft-offsetX, blockTop-offsetX, blockWidth, blockHeight, sColor0, sColor1);
+		ctx.restore();
+		
+		// Top Right
+		ctx.globalCompositeOperation = "source-over";
+		drawRectD(ctx, blockWidth*2+blockLeft, blockTop, blockWidth, blockHeight, dColor0, dColor1);
+		ctx.save();
+		ctx.beginPath();
+		ctx.rect(blockWidth*2, 0, blockWidth*2, blockHeight*2);
+		ctx.clip();
+		ctx.globalCompositeOperation = compositeType;
+		drawRectS(ctx, blockWidth*2+blockLeft, blockTop, blockWidth, blockHeight, sColor0, sColor1);
+		ctx.restore();
+
 	} catch(ex) {
-		console.log("doRefresh fail! ", ev);
+		console.log("doRefresh fail! ", ex);
 	}
 	
 }
