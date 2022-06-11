@@ -35,6 +35,7 @@
 		<option value="color">color</option>
 		<option value="luminosity">luminosity</option>
 	</select>
+	&nbsp; SourceAlpha: <input id="txtAlpha" type="text" size="4" value="1.0" />
 	<br/>
 	Destination color: <input id="txtdColor0" type="text" size="20" value="Blue" />
 	&nbsp;<input type="checkbox" id="chkdColor1" name="dColor" value="1" onchange="doRefresh()" />
@@ -48,7 +49,7 @@
 	<br/>
 	<canvas id="canvas" width="600" height="600" onmousedown="ctx_mousedown(e)"></canvas>
 	<br/>
-	[overlayOffset, overlay]<br/>
+	[compositeOffset, composite]<br/>
 	[destination, source]<br/>
 	<br/>
 	<script>
@@ -103,6 +104,10 @@ function doRefresh() {
 	const chksColor1 = document.getElementById('chksColor1');
 	if (!chkdColor1.checked) dColor1=dColor0;
 	if (!chksColor1.checked) sColor1=sColor0;
+	let alpha = parseFloat(document.getElementById('txtAlpha').value);
+	if (isNaN(alpha)) alpha=1.0;
+	else if (alpha<0.0) alpha=0.0;
+	else if (alpha>1.0) alpha=1.0;
 
 	// size
 	//const clientRect = canvas.getBoundingClientRect();
@@ -123,29 +128,36 @@ function doRefresh() {
 		//ctx.fillStyle = 'red';
 		//ctx.fillRect(10, 10, 100, 100);
 
-		// Raw destination, source : Bottom Left/Right
+		// Bottom Left: destination
 		ctx.globalCompositeOperation = "source-over";
 		drawRectD(ctx, blockLeft, blockHeight*2+blockTop, blockWidth, blockHeight, dColor0, dColor1);
-		drawRectS(ctx, blockWidth*2+blockLeft, blockHeight*2+blockTop, blockWidth, blockHeight, sColor0, sColor1);
 		
-		// Top Left
-		ctx.globalCompositeOperation = "source-over";
+		// Bottom Right: source
+		ctx.save();
+		ctx.globalAlpha = alpha;
+		drawRectS(ctx, blockWidth*2+blockLeft, blockHeight*2+blockTop, blockWidth, blockHeight, sColor0, sColor1);
+		ctx.restore();
+		
+		// Top Left: compositeOffset
+		//ctx.globalCompositeOperation = "source-over";
 		drawRectD(ctx, blockLeft, blockTop, blockWidth, blockHeight, dColor0, dColor1);
 		ctx.save();
 		ctx.beginPath();
 		ctx.rect(0, 0, blockWidth*2, blockHeight*2);
 		ctx.clip();
+		ctx.globalAlpha = alpha;
 		ctx.globalCompositeOperation = compositeType;
 		drawRectS(ctx, blockLeft-offsetX, blockTop-offsetX, blockWidth, blockHeight, sColor0, sColor1);
 		ctx.restore();
 		
-		// Top Right
-		ctx.globalCompositeOperation = "source-over";
+		// Top Right: composite
+		//ctx.globalCompositeOperation = "source-over";
 		drawRectD(ctx, blockWidth*2+blockLeft, blockTop, blockWidth, blockHeight, dColor0, dColor1);
 		ctx.save();
 		ctx.beginPath();
 		ctx.rect(blockWidth*2, 0, blockWidth*2, blockHeight*2);
 		ctx.clip();
+		ctx.globalAlpha = alpha;
 		ctx.globalCompositeOperation = compositeType;
 		drawRectS(ctx, blockWidth*2+blockLeft, blockTop, blockWidth, blockHeight, sColor0, sColor1);
 		ctx.restore();
