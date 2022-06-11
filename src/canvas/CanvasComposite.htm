@@ -8,7 +8,7 @@
 	<h1>Canvas Composite (画布-合成)</h1>
 	<button onclick="doRefresh()">Refresh</button>
 	&nbsp; globalCompositeOperation: <select id="cbotype" onchange="doRefresh()">
-		<option value="source-over">source-over</option>
+		<option value="source-over" selected="selected">source-over</option>
 		<option value="source-in">source-in</option>
 		<option value="source-out">source-out</option>
 		<option value="source-atop">source-atop</option>
@@ -18,7 +18,7 @@
 		<option value="destination-atop">destination-atop</option>
 		<option value="lighter">lighter</option>
 		<option value="copy">copy</option>
-		<option value="xor" selected="selected">xor</option>
+		<option value="xor">xor</option>
 		<option value="multiply">multiply</option>
 		<option value="screen">screen</option>
 		<option value="overlay">overlay</option>
@@ -168,26 +168,105 @@ function doRefresh() {
 	
 }
 
+function byteToHex(num) {
+    // Turns a number (0-255) into a 2-character hex number (00-ff)
+    return ('0'+num.toString(16)).slice(-2);
+}
+
+function colorBytesToHex(colorBytes) {
+	let s = "#";
+	let n = colorBytes.length;
+	if (n>4) n=4;
+	for(let i=0; i<n; ++i) {
+		s += byteToHex(colorBytes[i]);
+	}
+	return s;
+}
+
+/**
+ * Converts an RGB color value to HSL. Conversion formula
+ * adapted from http://en.wikipedia.org/wiki/HSL_color_space.
+ * Assumes r, g, and b are contained in the set [0, 255] and
+ * returns h, s, and l in the set [0, 1].
+ *
+ * @param   Number  r       The red color value
+ * @param   Number  g       The green color value
+ * @param   Number  b       The blue color value
+ * @return  Array           The HSL representation
+ */
+function rgbToHsl(r, g, b) {
+  r /= 255, g /= 255, b /= 255;
+
+  var max = Math.max(r, g, b), min = Math.min(r, g, b);
+  var h, s, l = (max + min) / 2;
+
+  if (max == min) {
+    h = s = 0; // achromatic
+  } else {
+    var d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+
+    switch (max) {
+      case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+      case g: h = (b - r) / d + 2; break;
+      case b: h = (r - g) / d + 4; break;
+    }
+
+    h /= 6;
+  }
+
+  return [ h, s, l ];
+}
+
+function getInfoBycolorBytes(colorBytes) {
+	let rt = "";
+	const digits = 3;
+	//rt += ` rgba(${colorBytes[0]}, ${colorBytes[1]}, ${colorBytes[2]}, ${colorBytes[3] / 255})`;
+	rt += `RGBA(${(colorBytes[0]/255).toFixed(digits)}, ${(colorBytes[1]/255).toFixed(digits)}, ${(colorBytes[3]/255).toFixed(digits)}, ${(colorBytes[3]/255).toFixed(digits)})`;
+	rt += `, Byte(${colorBytes[0]}, ${colorBytes[1]}, ${colorBytes[2]}, ${colorBytes[3]})`;
+	rt += `, ` + colorBytesToHex(colorBytes);
+	let hsl = rgbToHsl(colorBytes[0], colorBytes[1], colorBytes[2]);
+	rt += `, hsl(${(hsl[0]*360).toFixed(0)}, ${hsl[1].toFixed(digits)}, ${hsl[2].toFixed(digits)})`;
+	return rt;
+}
+
+function showClickInfo(x, y) {
+  let pixel = ctx.getImageData(x, y, 1, 1);
+  let data = pixel.data;
+  let rgba = `rgba(${data[0]}, ${data[1]}, ${data[2]}, ${data[3] / 255})`;
+  let info = getInfoBycolorBytes(data);
+	console.log("Point(",x,", ",y,"): ", info);
+	let posStr = "("+x+", "+y+")";
+	let msg = posStr + ": " + info;
+	// show.
+	const pointSpanTitle = document.getElementById('pointSpanTitle');
+	const pointSpan = document.getElementById('pointSpan');
+	pointSpanTitle.style.background = rgba;
+	pointSpan.textContent = msg;
+}
+
 function ctx_mousedown(ev) {
 	//console.log("mousedown: ", ev);
 	if (null==ev) return;
   var rect = canvas.getBoundingClientRect();
   var x = Math.floor(ev.clientX - rect.left * (canvas.width / rect.width));
   var y = Math.floor(ev.clientY - rect.top * (canvas.height / rect.height));
-  var pixel = ctx.getImageData(x, y, 1, 1);
-  var data = pixel.data;
-  const rgba = `rgba(${data[0]}, ${data[1]}, ${data[2]}, ${data[3] / 255})`;
-	console.log("Point(",x,", ",y,"): ", rgba);
-	var msg = "("+x+", "+y+"): " + rgba;
-	// show.
-	const pointSpanTitle = document.getElementById('pointSpanTitle');
-	const pointSpan = document.getElementById('pointSpan');
-	pointSpanTitle.style.background = rgba;
-	pointSpan.textContent = rgba;
+  showClickInfo(x, y);
+}
+
+function ctx_mousemove(ev) {
+	//console.log("mousemove: ", ev);
+	if (null==ev) return;
+	if (0==ev.buttons) return;
+  var rect = canvas.getBoundingClientRect();
+  var x = Math.floor(ev.clientX - rect.left * (canvas.width / rect.width));
+  var y = Math.floor(ev.clientY - rect.top * (canvas.height / rect.height));
+  showClickInfo(x, y);
 }
 
 function body_load() {
 	canvas.onmousedown = ctx_mousedown;
+	canvas.onmousemove = ctx_mousemove;
 	doRefresh();
 }
 
