@@ -39,14 +39,17 @@
 	<br/>
 	Destination color: <input id="txtdColor0" type="text" size="20" value="Blue" />
 	&nbsp;<input type="checkbox" id="chkdColor1" name="dColor" value="1" onchange="doRefresh()" />
-	&nbsp; to <input id="txtdColor1" type="text" size="20" value="Cyan" />
+	to <input id="txtdColor1" type="text" size="20" value="Cyan" />
 	<br/>
 	Source &nbsp; &nbsp; &nbsp; &nbsp;color: <input id="txtsColor0" type="text" size="20" value="Red" />
 	&nbsp;<input type="checkbox" id="chksColor1" name="sColor" value="1" onchange="doRefresh()" />
-	&nbsp; to <input id="txtsColor1" type="text" size="20" value="Black" />
+	to <input id="txtsColor1" type="text" size="20" value="Black" />
 	<br/>
-	<span id="pointSpanTitle">Point: </span><span id="pointSpan"></span>
+	<span id="pointSpanTitle">Current: <span id="pointSpan"></span></span>.
+	&nbsp; <span id="destinationSpan">Destination sample</span>,
+	&nbsp; <span id="sourceSpan">Source sample</span>.
 	<br/>
+	<textarea id="txtinfo" rows="5" style="width:95%" readonly></textarea><br/>
 	<canvas id="canvas" width="600" height="600" onmousedown="ctx_mousedown(e)"></canvas>
 	<br/>
 	[compositeOffset, composite]<br/>
@@ -56,6 +59,12 @@
 // https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/globalCompositeOperation
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
+var blockWidth = 0;
+var blockHeight = 0;
+var blockLeft = 0;
+var blockTop = 0;
+var blockOffsetX = 0;
+var blockOffsetY = 0;
 
 function drawRectD(ctx, x, y, w, h, color0, color1) {
 	let flag = ("string"===typeof(color1)) && (color1.length>0) && (color0!=color1);
@@ -112,12 +121,12 @@ function doRefresh() {
 	// size
 	//const clientRect = canvas.getBoundingClientRect();
 	const cw = canvas.width, ch = canvas.height;
-	let blockWidth = Math.floor(cw/4);
-	let blockHeight = Math.floor(ch/4);
-	let blockLeft = Math.floor(blockWidth/2);
-	let blockTop = Math.floor(blockHeight/2);
-	let offsetX = Math.floor(blockWidth/4);
-	let offsetY = Math.floor(blockHeight/4);
+	blockWidth = Math.floor(cw/4);
+	blockHeight = Math.floor(ch/4);
+	blockLeft = Math.floor(blockWidth/2);
+	blockTop = Math.floor(blockHeight/2);
+	blockOffsetX = Math.floor(blockWidth/4);
+	blockOffsetY = Math.floor(blockHeight/4);
 	
 	// clear
 	ctx.clearRect(0, 0, cw, ch);
@@ -147,7 +156,7 @@ function doRefresh() {
 		ctx.clip();
 		ctx.globalAlpha = alpha;
 		ctx.globalCompositeOperation = compositeType;
-		drawRectS(ctx, blockLeft-offsetX, blockTop-offsetX, blockWidth, blockHeight, sColor0, sColor1);
+		drawRectS(ctx, blockLeft-blockOffsetX, blockTop-blockOffsetY, blockWidth, blockHeight, sColor0, sColor1);
 		ctx.restore();
 		
 		// Top Right: composite
@@ -162,6 +171,17 @@ function doRefresh() {
 		drawRectS(ctx, blockWidth*2+blockLeft, blockTop, blockWidth, blockHeight, sColor0, sColor1);
 		ctx.restore();
 
+		// Title
+		let textHeight = 24;
+		ctx.save();
+		ctx.fillStyle = 'black';
+		ctx.font = 'bold 18px sans-serif';
+		ctx.textAlign = 'center';
+		ctx.fillText('destination', blockWidth*1, blockHeight*2+textHeight);
+		ctx.fillText('source', blockWidth*3, blockHeight*2+textHeight);
+		ctx.fillText('compositeOffset', blockWidth*1, textHeight);
+		ctx.fillText('composite', blockWidth*3, textHeight);
+		ctx.restore();
 	} catch(ex) {
 		console.log("doRefresh fail! ", ex);
 	}
@@ -222,7 +242,7 @@ function getInfoBycolorBytes(colorBytes) {
 	let rt = "";
 	const digits = 3;
 	//rt += ` rgba(${colorBytes[0]}, ${colorBytes[1]}, ${colorBytes[2]}, ${colorBytes[3] / 255})`;
-	rt += `RGBA(${(colorBytes[0]/255).toFixed(digits)}, ${(colorBytes[1]/255).toFixed(digits)}, ${(colorBytes[3]/255).toFixed(digits)}, ${(colorBytes[3]/255).toFixed(digits)})`;
+	rt += `RGBA(${(colorBytes[0]/255).toFixed(digits)}, ${(colorBytes[1]/255).toFixed(digits)}, ${(colorBytes[2]/255).toFixed(digits)}, ${(colorBytes[3]/255).toFixed(digits)})`;
 	rt += `, Byte(${colorBytes[0]}, ${colorBytes[1]}, ${colorBytes[2]}, ${colorBytes[3]})`;
 	rt += `, ` + colorBytesToHex(colorBytes);
 	let hsl = rgbToHsl(colorBytes[0], colorBytes[1], colorBytes[2]);
@@ -237,12 +257,45 @@ function showClickInfo(x, y) {
   let info = getInfoBycolorBytes(data);
 	console.log("Point(",x,", ",y,"): ", info);
 	let posStr = "("+x+", "+y+")";
-	let msg = posStr + ": " + info;
+	let msg = "";
+	msg += "Current    : " + info + ". Pos" + posStr;
+	// destination
+	let blockWidthX2 = blockWidth*2;
+	let blockHeightX2 = blockHeight*2;
+	let x0 = x;
+	let y0 = y;
+	if (x0>blockWidthX2) x0 %= blockWidthX2;
+	if (y0>blockHeightX2) y0 %= blockHeightX2;
+	let xD = x0;
+	let yD = y0 + blockHeightX2;
+  let pixelD = ctx.getImageData(xD, yD, 1, 1);
+  let dataD = pixelD.data;
+  let rgbaD = `rgba(${dataD[0]}, ${dataD[1]}, ${dataD[2]}, ${dataD[3] / 255})`;
+  let infoD = getInfoBycolorBytes(dataD);
+  msg += "\nDestination: " + infoD + ". Pos("+xD+", "+yD+")";
+	// source.
+	let xS = x0 + blockWidthX2;
+	let yS = y0 + blockHeightX2;
+	if (x<blockWidthX2 && y<blockHeightX2) {
+		xD += blockOffsetX;
+		yD += blockOffsetY;
+	}
+  let pixelS = ctx.getImageData(xS, yS, 1, 1);
+  let dataS = pixelS.data;
+  let rgbaS = `rgba(${dataS[0]}, ${dataS[1]}, ${dataS[2]}, ${dataS[3] / 255})`;
+  let infoS = getInfoBycolorBytes(dataS);
+  msg += "\nSource     : " + infoS + ". Pos("+xS+", "+yS+")";
 	// show.
 	const pointSpanTitle = document.getElementById('pointSpanTitle');
 	const pointSpan = document.getElementById('pointSpan');
+	const destinationSpan = document.getElementById('destinationSpan');
+	const sourceSpan = document.getElementById('sourceSpan');
+	const txtinfo = document.getElementById('txtinfo');
 	pointSpanTitle.style.background = rgba;
-	pointSpan.textContent = msg;
+	destinationSpan.style.background = rgbaD;
+	sourceSpan.style.background = rgbaS;
+	pointSpan.textContent = posStr;
+	txtinfo.value = msg;
 }
 
 function ctx_mousedown(ev) {
