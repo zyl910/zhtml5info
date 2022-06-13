@@ -2,10 +2,10 @@
 <html>
 <head>
 	<meta charset="utf-8">
-	<title>Canvas Composite (画布合成)</title>
+	<title>Canvas Composite (画布混合)</title>
 </head>
 <body onload="body_load()">
-	<h1>Canvas Composite (画布合成)</h1>
+	<h1 style="display:none">Canvas Composite (画布混合)</h1>
 	<button onclick="doRefresh()">Refresh</button>
 	&nbsp; globalCompositeOperation: <select id="cbotype" onchange="doRefresh()">
 		<option value="source-over" selected="selected">source-over</option>
@@ -50,7 +50,7 @@
 	&nbsp; <span id="destinationSpan">Destination sample</span>,
 	&nbsp; <span id="sourceSpan">Source sample</span>.
 	<br/>
-	<textarea id="txtinfo" rows="5" style="width:95%" readonly></textarea><br/>
+	<textarea id="txtinfo" rows="15" style="width:95%" readonly></textarea><br/>
 	<canvas id="canvas" width="600" height="600" onmousedown="ctx_mousedown(e)"></canvas>
 	<br/>
 	[compositeOffset, composite]<br/>
@@ -60,6 +60,7 @@
 // https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/globalCompositeOperation
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
+var compositeCodeLast;
 var blockWidth = 0;
 var blockHeight = 0;
 var blockLeft = 0;
@@ -124,8 +125,8 @@ function drawRectS(ctx, x, y, w, h, color0, color1) {
 function doRefresh() {
 	const cbotype = document.getElementById('cbotype');
 	let index = cbotype.selectedIndex;
-	let compositeType = "xor";
-	if (index>=0) compositeType = cbotype.options[index].value;
+	compositeCodeLast = "xor";
+	if (index>=0) compositeCodeLast = cbotype.options[index].value;
 	
 	// color
 	let dColor0 = document.getElementById('txtdColor0').value;
@@ -184,7 +185,7 @@ function doRefresh() {
 		ctx.rect(0, 0, blockWidth*2, blockHeight*2);
 		ctx.clip();
 		ctx.globalAlpha = alphaS;
-		ctx.globalCompositeOperation = compositeType;
+		ctx.globalCompositeOperation = compositeCodeLast;
 		drawRectS(ctx, blockLeft-blockOffsetX, blockTop-blockOffsetY, blockWidth, blockHeight, sColor0, sColor1);
 		ctx.restore();
 		
@@ -197,7 +198,7 @@ function doRefresh() {
 		ctx.rect(blockWidth*2, 0, blockWidth*2, blockHeight*2);
 		ctx.clip();
 		ctx.globalAlpha = alphaS;
-		ctx.globalCompositeOperation = compositeType;
+		ctx.globalCompositeOperation = compositeCodeLast;
 		drawRectS(ctx, blockWidth*2+blockLeft, blockTop, blockWidth, blockHeight, sColor0, sColor1);
 		ctx.restore();
 
@@ -220,7 +221,7 @@ function doRefresh() {
 
 /** Clamp alpha to [0..1] .
  *
- * @param {Number}	num	The alpha number.
+ * @param {Number}	alpha	The alpha number.
  * @return	{Number} Returns clamped alpha.
  */
 function clampAlpha(alpha) {
@@ -228,6 +229,20 @@ function clampAlpha(alpha) {
 	else if (alpha<0.0) alpha=0.0;
 	else if (alpha>1.0) alpha=1.0;
 	return alpha;
+}
+
+/** Byte clamp to [0..255] .
+ *
+ * @param {Number}	num	The byte number.
+ * @return	{Number} Returns clamped value.
+ */
+function byteClamp(num) {
+	if ("number"!=typeof(num)) return 0;
+	if (isNaN(num)) return 0;
+	num = Math.floor(num);
+	if (num<0) num=0;
+	else if (num>255) num=255;
+	return num;
 }
 
 /** Byte to hex string.
@@ -307,6 +322,77 @@ function getInfoByColorBytes(colorBytes) {
 	return rt;
 }
 
+/** Byte color to float color.
+ *
+ * @param {Array}	bytes	The color bytes.
+ * @return	{Array} Returns float color.
+ */
+function toFloatColor(bytes) {
+	return [bytes[0]/255.0, bytes[1]/255.0, bytes[2]/255.0, bytes[3]/255.0];
+}
+
+/** Byte color from float color.
+ *
+ * @param {Array}	arr	Color's float array.
+ * @return	{Array} Returns byte color.
+ */
+function fromFloatColor(arr) {
+	return [byteClamp(arr[0]*255+0.5), byteClamp(arr[1]*255+0.5), byteClamp(arr[2]*255+0.5), byteClamp(arr[3]*255+0.5)];
+}
+
+/** Get info by composite detail.
+ *
+ * @param {String}	compositeCode	The compositeCode. From `Context.globalCompositeOperation` .
+ * @param {Array}	dataD	The destination pixel value (RGBA bytes).
+ * @param {Array}	dataS	The source pixel value (RGBA bytes).
+ * @return	{String} Returns color info.
+ */
+function getInfoByComposite(compositeCode, dataD, dataS) {
+	const digits = 3;
+	const COLOR_CHANNELS = 3;
+	const ALPHA_INDEX = COLOR_CHANNELS;
+	const colorNames = ["R", "G", "B"];
+	let msg = "compositeCode:\t" + compositeCode;
+	let fD = toFloatColor(dataD);
+	let fS = toFloatColor(dataS);
+	let fO = null;
+	let Ab = fD[ALPHA_INDEX];	// background(destination) alpha.
+	let As = fS[ALPHA_INDEX];	// source alpha.
+	let AbStr = Ab.toFixed(digits);
+	let AsStr = As.toFixed(digits);
+	let i;
+	if ("source-over"==compositeCode) {
+		msg += "\n\tFa = 1; Fb = 1 - As"
+		+"\n\tCo = As * Cs + Ab * Cb * (1 - As)"
+		+"\n\tAo = As + Ab * (1 - As)";
+		fO = new Array(4);
+		for(i=0; i<COLOR_CHANNELS; ++i) {
+			fO[i] = As * fS[i] + Ab * fD[i] * (1 - As);
+			let name = colorNames[i];
+			msg += `\n${name}o = As * ${name}s + Ab * ${name}b * (1 - As) = ${AsStr} * ${fS[i].toFixed(digits)} + ${AbStr} * ${fD[i].toFixed(digits)} * (1 - ${AsStr}) = ${fO[i].toFixed(digits)}`;
+		}
+		i = ALPHA_INDEX; // Alpha channel.
+		fO[i] = As + Ab * (1 - As);
+		msg += `\nAo = As + Ab * (1 - As) = AsStr + AbStr * (1 - AsStr) = ${fO[i].toFixed(digits)}`;
+	}
+	if (null!=fO) {
+		let dataO = fromFloatColor(fO);
+		let infoO = getInfoByColorBytes(dataO);
+		msg += "\nPremultiplie:" + infoO;
+		let fW = [fO[0], fO[1], fO[2], fO[3]];
+		// Premultiplied alpha to straight alpha.
+		if (fO[ALPHA_INDEX]>0) {
+			for(i=0; i<COLOR_CHANNELS; ++i) {
+				fW[i] = fO[i]/fO[ALPHA_INDEX];
+			}
+		}
+		let dataW = fromFloatColor(fW);
+		let infoW = getInfoByColorBytes(dataW);
+		msg += "\nResult     : " + infoW;
+	}
+	return msg;
+}
+
 /** Show click info.
  *
  * @param {Number}	x	The x.
@@ -339,14 +425,16 @@ function showClickInfo(x, y) {
 	let xS = x0 + blockWidthX2;
 	let yS = y0 + blockHeightX2;
 	if (x<blockWidthX2 && y<blockHeightX2) {
-		xD += blockOffsetX;
-		yD += blockOffsetY;
+		xS += blockOffsetX;
+		yS += blockOffsetY;
 	}
   let pixelS = ctx.getImageData(xS, yS, 1, 1);
   let dataS = pixelS.data;
   let rgbaS = `rgba(${dataS[0]}, ${dataS[1]}, ${dataS[2]}, ${dataS[3] / 255})`;
   let infoS = getInfoByColorBytes(dataS);
   msg += "\nSource     : " + infoS + ". Pos("+xS+", "+yS+")";
+  // getInfoByComposite.
+  msg += "\n" + getInfoByComposite(compositeCodeLast, dataD, dataS);
 	// show.
 	const pointSpanTitle = document.getElementById('pointSpanTitle');
 	const pointSpan = document.getElementById('pointSpan');
