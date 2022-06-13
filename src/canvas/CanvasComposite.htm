@@ -66,6 +66,16 @@ var blockTop = 0;
 var blockOffsetX = 0;
 var blockOffsetY = 0;
 
+/** Draw destination rect.
+ *
+ * @param {Object}	ctx	The RenderingContext.
+ * @param {Number}	x	The x.
+ * @param {Number}	y	The y.
+ * @param {Number}	w	The width.
+ * @param {Number}	h	The height.
+ * @param {String}	color0	The start color.
+ * @param {String}	color1	(optional) The end color.
+ */
 function drawRectD(ctx, x, y, w, h, color0, color1) {
 	let flag = ("string"===typeof(color1)) && (color1.length>0) && (color0!=color1);
 	if (flag) {
@@ -82,6 +92,16 @@ function drawRectD(ctx, x, y, w, h, color0, color1) {
 	}
 }
 
+/** Draw source rect.
+ *
+ * @param {RenderingContext}	ctx	The RenderingContext.
+ * @param {Number}	x	The x.
+ * @param {Number}	y	The y.
+ * @param {Number}	w	The width.
+ * @param {Number}	h	The height.
+ * @param {String}	color0	The start color.
+ * @param {String}	color1	(optional) The end color.
+ */
 function drawRectS(ctx, x, y, w, h, color0, color1) {
 	let flag = ("string"===typeof(color1)) && (color1.length>0) && (color0!=color1);
 	if (flag) {
@@ -98,6 +118,8 @@ function drawRectS(ctx, x, y, w, h, color0, color1) {
 	}
 }
 
+/** Do refresh.
+ */
 function doRefresh() {
 	const cbotype = document.getElementById('cbotype');
 	let index = cbotype.selectedIndex;
@@ -188,11 +210,21 @@ function doRefresh() {
 	
 }
 
+/** Byte to hex string.
+ *
+ * @param {Number}	num	The byte number.
+ * @return	{String} Returns hex string.
+ */
 function byteToHex(num) {
     // Turns a number (0-255) into a 2-character hex number (00-ff)
     return ('0'+num.toString(16)).slice(-2);
 }
 
+/** ColorBytes to hex color string.
+ *
+ * @param {Array}	colorBytes	The colorBytes.
+ * @return	{String} Returns hex color string.
+ */
 function colorBytesToHex(colorBytes) {
 	let s = "#";
 	let n = colorBytes.length;
@@ -238,7 +270,12 @@ function rgbToHsl(r, g, b) {
   return [ h, s, l ];
 }
 
-function getInfoBycolorBytes(colorBytes) {
+/** Get info by colorBytes.
+ *
+ * @param {Array}	colorBytes	The colorBytes.
+ * @return	{String} Returns color info.
+ */
+function getInfoByColorBytes(colorBytes) {
 	let rt = "";
 	const digits = 3;
 	//rt += ` rgba(${colorBytes[0]}, ${colorBytes[1]}, ${colorBytes[2]}, ${colorBytes[3] / 255})`;
@@ -250,11 +287,16 @@ function getInfoBycolorBytes(colorBytes) {
 	return rt;
 }
 
+/** Show click info.
+ *
+ * @param {Number}	x	The x.
+ * @param {Number}	y	The y.
+ */
 function showClickInfo(x, y) {
   let pixel = ctx.getImageData(x, y, 1, 1);
   let data = pixel.data;
   let rgba = `rgba(${data[0]}, ${data[1]}, ${data[2]}, ${data[3] / 255})`;
-  let info = getInfoBycolorBytes(data);
+  let info = getInfoByColorBytes(data);
 	console.log("Point(",x,", ",y,"): ", info);
 	let posStr = "("+x+", "+y+")";
 	let msg = "";
@@ -271,7 +313,7 @@ function showClickInfo(x, y) {
   let pixelD = ctx.getImageData(xD, yD, 1, 1);
   let dataD = pixelD.data;
   let rgbaD = `rgba(${dataD[0]}, ${dataD[1]}, ${dataD[2]}, ${dataD[3] / 255})`;
-  let infoD = getInfoBycolorBytes(dataD);
+  let infoD = getInfoByColorBytes(dataD);
   msg += "\nDestination: " + infoD + ". Pos("+xD+", "+yD+")";
 	// source.
 	let xS = x0 + blockWidthX2;
@@ -283,7 +325,7 @@ function showClickInfo(x, y) {
   let pixelS = ctx.getImageData(xS, yS, 1, 1);
   let dataS = pixelS.data;
   let rgbaS = `rgba(${dataS[0]}, ${dataS[1]}, ${dataS[2]}, ${dataS[3] / 255})`;
-  let infoS = getInfoBycolorBytes(dataS);
+  let infoS = getInfoByColorBytes(dataS);
   msg += "\nSource     : " + infoS + ". Pos("+xS+", "+yS+")";
 	// show.
 	const pointSpanTitle = document.getElementById('pointSpanTitle');
@@ -298,7 +340,7 @@ function showClickInfo(x, y) {
 	txtinfo.value = msg;
 }
 
-function ctx_mousedown(ev) {
+function canvas_mousedown(ev) {
 	//console.log("mousedown: ", ev);
 	if (null==ev) return;
   var rect = canvas.getBoundingClientRect();
@@ -307,7 +349,7 @@ function ctx_mousedown(ev) {
   showClickInfo(x, y);
 }
 
-function ctx_mousemove(ev) {
+function canvas_mousemove(ev) {
 	//console.log("mousemove: ", ev);
 	if (null==ev) return;
 	if (0==ev.buttons) return;
@@ -318,8 +360,8 @@ function ctx_mousemove(ev) {
 }
 
 function body_load() {
-	canvas.onmousedown = ctx_mousedown;
-	canvas.onmousemove = ctx_mousemove;
+	canvas.onmousedown = canvas_mousedown;
+	canvas.onmousemove = canvas_mousemove;
 	doRefresh();
 }
 
