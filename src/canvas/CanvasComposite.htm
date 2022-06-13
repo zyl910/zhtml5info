@@ -2,10 +2,10 @@
 <html>
 <head>
 	<meta charset="utf-8">
-	<title>Canvas Composite (画布-合成)</title>
+	<title>Canvas Composite (画布合成)</title>
 </head>
 <body onload="body_load()">
-	<h1>Canvas Composite (画布-合成)</h1>
+	<h1>Canvas Composite (画布合成)</h1>
 	<button onclick="doRefresh()">Refresh</button>
 	&nbsp; globalCompositeOperation: <select id="cbotype" onchange="doRefresh()">
 		<option value="source-over" selected="selected">source-over</option>
@@ -35,15 +35,16 @@
 		<option value="color">color</option>
 		<option value="luminosity">luminosity</option>
 	</select>
-	&nbsp; SourceAlpha: <input id="txtAlpha" type="text" size="4" value="1.0" />
 	<br/>
-	Destination color: <input id="txtdColor0" type="text" size="20" value="Blue" />
-	&nbsp;<input type="checkbox" id="chkdColor1" name="dColor" value="1" onchange="doRefresh()" />
-	to <input id="txtdColor1" type="text" size="20" value="Cyan" />
+	Destination color: <input id="txtdColor0" type="text" size="20" value="Blue" onchange="doRefresh()" />
+	&nbsp;<input type="checkbox" id="chkdColor1" name="chkdColor1" value="1" onchange="doRefresh()" />
+	to <input id="txtdColor1" type="text" size="20" value="Cyan" onchange="doRefresh()" />
+	&nbsp;<input type="checkbox" id="chkAlphaD" name="chkAlphaD" onchange="doRefresh()" />Alpha: <input id="txtAlphaD" type="text" size="4" value="0.5" onchange="doRefresh()" />
 	<br/>
-	Source &nbsp; &nbsp; &nbsp; &nbsp;color: <input id="txtsColor0" type="text" size="20" value="Red" />
-	&nbsp;<input type="checkbox" id="chksColor1" name="sColor" value="1" onchange="doRefresh()" />
-	to <input id="txtsColor1" type="text" size="20" value="Black" />
+	Source &nbsp; &nbsp; &nbsp; &nbsp;color: <input id="txtsColor0" type="text" size="20" value="Red" onchange="doRefresh()" />
+	&nbsp;<input type="checkbox" id="chksColor1" name="chksColor1" value="1" onchange="doRefresh()" />
+	to <input id="txtsColor1" type="text" size="20" value="Black" onchange="doRefresh()" />
+	&nbsp;<input type="checkbox" id="chkAlphaS" name="chkAlphaS" onchange="doRefresh()" />Alpha: <input id="txtAlphaS" type="text" size="4" value="0.5" onchange="doRefresh()" />
 	<br/>
 	<span id="pointSpanTitle">Current: <span id="pointSpan"></span></span>.
 	&nbsp; <span id="destinationSpan">Destination sample</span>,
@@ -135,10 +136,12 @@ function doRefresh() {
 	const chksColor1 = document.getElementById('chksColor1');
 	if (!chkdColor1.checked) dColor1=dColor0;
 	if (!chksColor1.checked) sColor1=sColor0;
-	let alpha = parseFloat(document.getElementById('txtAlpha').value);
-	if (isNaN(alpha)) alpha=1.0;
-	else if (alpha<0.0) alpha=0.0;
-	else if (alpha>1.0) alpha=1.0;
+	let alphaD = clampAlpha(parseFloat(document.getElementById('txtAlphaD').value));
+	let alphaS = clampAlpha(parseFloat(document.getElementById('txtAlphaS').value));
+	const chkAlphaD = document.getElementById('chkAlphaD');
+	const chkAlphaS = document.getElementById('chkAlphaS');
+	if (!chkAlphaD.checked) alphaD=1.0;
+	if (!chkAlphaS.checked) alphaS=1.0;
 
 	// size
 	//const clientRect = canvas.getBoundingClientRect();
@@ -161,34 +164,39 @@ function doRefresh() {
 
 		// Bottom Left: destination
 		ctx.globalCompositeOperation = "source-over";
+		ctx.save();
+		ctx.globalAlpha = alphaD;
 		drawRectD(ctx, blockLeft, blockHeight*2+blockTop, blockWidth, blockHeight, dColor0, dColor1);
+		ctx.restore();
 		
 		// Bottom Right: source
 		ctx.save();
-		ctx.globalAlpha = alpha;
+		ctx.globalAlpha = alphaS;
 		drawRectS(ctx, blockWidth*2+blockLeft, blockHeight*2+blockTop, blockWidth, blockHeight, sColor0, sColor1);
 		ctx.restore();
 		
 		// Top Left: compositeOffset
 		//ctx.globalCompositeOperation = "source-over";
-		drawRectD(ctx, blockLeft, blockTop, blockWidth, blockHeight, dColor0, dColor1);
 		ctx.save();
+		ctx.globalAlpha = alphaD;
+		drawRectD(ctx, blockLeft, blockTop, blockWidth, blockHeight, dColor0, dColor1);
 		ctx.beginPath();
 		ctx.rect(0, 0, blockWidth*2, blockHeight*2);
 		ctx.clip();
-		ctx.globalAlpha = alpha;
+		ctx.globalAlpha = alphaS;
 		ctx.globalCompositeOperation = compositeType;
 		drawRectS(ctx, blockLeft-blockOffsetX, blockTop-blockOffsetY, blockWidth, blockHeight, sColor0, sColor1);
 		ctx.restore();
 		
 		// Top Right: composite
 		//ctx.globalCompositeOperation = "source-over";
-		drawRectD(ctx, blockWidth*2+blockLeft, blockTop, blockWidth, blockHeight, dColor0, dColor1);
 		ctx.save();
+		ctx.globalAlpha = alphaD;
+		drawRectD(ctx, blockWidth*2+blockLeft, blockTop, blockWidth, blockHeight, dColor0, dColor1);
 		ctx.beginPath();
 		ctx.rect(blockWidth*2, 0, blockWidth*2, blockHeight*2);
 		ctx.clip();
-		ctx.globalAlpha = alpha;
+		ctx.globalAlpha = alphaS;
 		ctx.globalCompositeOperation = compositeType;
 		drawRectS(ctx, blockWidth*2+blockLeft, blockTop, blockWidth, blockHeight, sColor0, sColor1);
 		ctx.restore();
@@ -208,6 +216,18 @@ function doRefresh() {
 		console.log("doRefresh fail! ", ex);
 	}
 	
+}
+
+/** Clamp alpha to [0..1] .
+ *
+ * @param {Number}	num	The alpha number.
+ * @return	{Number} Returns clamped alpha.
+ */
+function clampAlpha(alpha) {
+	if (isNaN(alpha)) alpha=1.0;
+	else if (alpha<0.0) alpha=0.0;
+	else if (alpha>1.0) alpha=1.0;
+	return alpha;
 }
 
 /** Byte to hex string.
