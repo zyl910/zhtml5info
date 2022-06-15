@@ -60,7 +60,7 @@
 // https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/globalCompositeOperation
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
-var compositeCodeLast;
+var compositeModeLast;
 var blockWidth = 0;
 var blockHeight = 0;
 var blockLeft = 0;
@@ -127,8 +127,8 @@ function drawRectS(ctx, x, y, w, h, color0, color1) {
 function doRefresh() {
 	const cbotype = document.getElementById('cbotype');
 	let index = cbotype.selectedIndex;
-	compositeCodeLast = "xor";
-	if (index>=0) compositeCodeLast = cbotype.options[index].value;
+	compositeModeLast = "xor";
+	if (index>=0) compositeModeLast = cbotype.options[index].value;
 	
 	// color
 	let dColor0 = document.getElementById('txtdColor0').value;
@@ -187,7 +187,7 @@ function doRefresh() {
 		ctx.rect(0, 0, blockWidth*2, blockHeight*2);
 		ctx.clip();
 		ctx.globalAlpha = alphaS;
-		ctx.globalCompositeOperation = compositeCodeLast;
+		ctx.globalCompositeOperation = compositeModeLast;
 		drawRectS(ctx, blockLeft-blockOffsetX, blockTop-blockOffsetY, blockWidth, blockHeight, sColor0, sColor1);
 		ctx.restore();
 		
@@ -200,7 +200,7 @@ function doRefresh() {
 		ctx.rect(blockWidth*2, 0, blockWidth*2, blockHeight*2);
 		ctx.clip();
 		ctx.globalAlpha = alphaS;
-		ctx.globalCompositeOperation = compositeCodeLast;
+		ctx.globalCompositeOperation = compositeModeLast;
 		drawRectS(ctx, blockWidth*2+blockLeft, blockTop, blockWidth, blockHeight, sColor0, sColor1);
 		ctx.restore();
 
@@ -347,17 +347,17 @@ function fromFloatColor(arr) {
 
 /** Get info by composite detail.
  *
- * @param {String}	compositeCode	The compositeCode. From `Context.globalCompositeOperation` .
+ * @param {String}	compositeMode	The composite mode. From `Context.globalCompositeOperation` .
  * @param {Array}	dataD	The destination pixel value (RGBA bytes).
  * @param {Array}	dataS	The source pixel value (RGBA bytes).
  * @return	{String} Returns color info.
  */
-function getInfoByComposite(compositeCode, dataD, dataS) {
+function getInfoByComposite(compositeMode, dataD, dataS) {
 	const digits = 3;
 	const COLOR_CHANNELS = 3;
 	const ALPHA_INDEX = COLOR_CHANNELS;
 	const colorNames = ["R", "G", "B"];
-	let msg = "compositeCode:\t" + compositeCode;
+	let msg = "compositeMode:\t" + compositeMode;
 	let fD = toFloatColor(dataD);
 	let fS = toFloatColor(dataS);
 	let fO = null;
@@ -366,7 +366,7 @@ function getInfoByComposite(compositeCode, dataD, dataS) {
 	let AbStr = Ab.toFixed(digits);
 	let AsStr = As.toFixed(digits);
 	let i;
-	if ("source-over"==compositeCode) {
+	if ("source-over"==compositeMode) {
 		msg += "\n\tFa = 1; Fb = 1 - As"
 			+"\n\tCo = As * Cs + Ab * Cb * (1 - As)"
 			+"\n\tAo = As + Ab * (1 - As)";
@@ -379,7 +379,7 @@ function getInfoByComposite(compositeCode, dataD, dataS) {
 		i = ALPHA_INDEX;
 		fO[i] = As + Ab * (1 - As);
 		msg += `\nAo = As + Ab * (1 - As) = AsStr + AbStr * (1 - AsStr) = ${fO[i].toFixed(digits)}`;
-	} if ("source-in"==compositeCode) {
+	} if ("source-in"==compositeMode) {
 		msg += "\n\tFa = Ab; Fb = 0"
 			+"\n\tCo = As * Cs * Ab "
 			+"\n\tAo = As * Ab";
@@ -392,7 +392,7 @@ function getInfoByComposite(compositeCode, dataD, dataS) {
 		i = ALPHA_INDEX;
 		fO[i] = As * Ab;
 		msg += `\nAo = As * Ab = ${AsStr} * ${AbStr} = ${fO[i].toFixed(digits)}`;
-	} if ("source-out"==compositeCode) {
+	} if ("source-out"==compositeMode) {
 		msg += "\n\tFa = 1 – Ab; Fb = 0"
 			+"\n\tCo = As * Cs * (1 - Ab) "
 			+"\n\tAo = As * (1 - Ab)";
@@ -405,7 +405,7 @@ function getInfoByComposite(compositeCode, dataD, dataS) {
 		i = ALPHA_INDEX;
 		fO[i] = As * (1 - Ab);
 		msg += `\nAo = As * (1 - Ab) = ${AsStr} * (1 - ${AbStr}) = ${fO[i].toFixed(digits)}`;
-	} if ("source-atop"==compositeCode) {
+	} if ("source-atop"==compositeMode) {
 		msg += "\n\tFa = Ab; Fb = 1 - As"
 			+"\n\tCo = As * Cs * Ab + Ab * Cb * (1 - As) "
 			+"\n\tAo = As * Ab + Ab * (1 - As)";
@@ -418,7 +418,7 @@ function getInfoByComposite(compositeCode, dataD, dataS) {
 		i = ALPHA_INDEX;
 		fO[i] = As * Ab + Ab * (1 - As);
 		msg += `\nAo = As * Ab + Ab * (1 - As) = ${AsStr} * ${AbStr} + ${AbStr} * (1 - ${AsStr}) = ${fO[i].toFixed(digits)}`;
-	} else if ("destination-over"==compositeCode) {
+	} else if ("destination-over"==compositeMode) {
 		msg += "\n\tFa = 1 - Ab; Fb = 1"
 			+"\n\tCo = As * Cs * (1 - Ab) + Ab * Cb"
 			+"\n\tAo = As * (1 - Ab) + Ab";
@@ -431,7 +431,7 @@ function getInfoByComposite(compositeCode, dataD, dataS) {
 		i = ALPHA_INDEX;
 		fO[i] = As * (1 - Ab) + Ab;
 		msg += `\nAo = As * (1 - Ab) + Ab = ${AsStr} * (1 - ${AbStr}) + ${AbStr} = ${fO[i].toFixed(digits)}`;
-	} if ("destination-in"==compositeCode) {
+	} if ("destination-in"==compositeMode) {
 		msg += "\n\tFa = 0; Fb = As"
 			+"\n\tCo = Ab * Cb * As "
 			+"\n\tAo = Ab * As";
@@ -444,7 +444,7 @@ function getInfoByComposite(compositeCode, dataD, dataS) {
 		i = ALPHA_INDEX;
 		fO[i] = As * Ab;
 		msg += `\nAo = Ab * As = ${AbStr} * ${AsStr} = ${fO[i].toFixed(digits)}`;
-	} if ("destination-out"==compositeCode) {
+	} if ("destination-out"==compositeMode) {
 		msg += "\n\tFa = 0; Fb = 1 - As"
 			+"\n\tCo = Ab * Cb * (1 - As) "
 			+"\n\tAo = Ab * (1 - As)";
@@ -457,7 +457,7 @@ function getInfoByComposite(compositeCode, dataD, dataS) {
 		i = ALPHA_INDEX;
 		fO[i] = Ab * (1 - As);
 		msg += `\nAo = Ab * (1 - As) = ${AbStr} * (1 - ${AsStr}) = ${fO[i].toFixed(digits)}`;
-	} if ("destination-atop"==compositeCode) {
+	} if ("destination-atop"==compositeMode) {
 		msg += "\n\tFa = 1 - Ab; Fb = As"
 			+"\n\tCo = As * Cs * (1 - Ab) + Ab * Cb * As "
 			+"\n\tAo = As * (1 - Ab) + Ab * As";
@@ -470,7 +470,7 @@ function getInfoByComposite(compositeCode, dataD, dataS) {
 		i = ALPHA_INDEX;
 		fO[i] = As * (1 - Ab) + Ab * As;
 		msg += `\nAo = As * (1 - Ab) + Ab * As = ${AsStr} * (1 - ${AbStr}) + ${AbStr} * ${AsStr} = ${fO[i].toFixed(digits)}`;
-	} if ("lighter"==compositeCode) {
+	} if ("lighter"==compositeMode) {
 		msg += "\n\tFa = 1; Fb = 1"
 			+"\n\tAs * Cs + Ab * Cb "
 			+"\n\tAo = As + Ab";
@@ -483,7 +483,7 @@ function getInfoByComposite(compositeCode, dataD, dataS) {
 		i = ALPHA_INDEX;
 		fO[i] = As + Ab;
 		msg += `\nAo = As + Ab = ${AsStr} + ${AbStr} = ${fO[i].toFixed(digits)}`;
-	} if ("copy"==compositeCode) {
+	} if ("copy"==compositeMode) {
 		msg += "\n\tFa = 1; Fb = 0"
 			+"\n\tCo = As * Cs "
 			+"\n\tAo = As";
@@ -496,7 +496,7 @@ function getInfoByComposite(compositeCode, dataD, dataS) {
 		i = ALPHA_INDEX;
 		fO[i] = As;
 		msg += `\nAo = As = ${AsStr} = ${fO[i].toFixed(digits)}`;
-	} if ("xor"==compositeCode) {
+	} if ("xor"==compositeMode) {
 		msg += "\n\tFa = 1 - Ab; Fb = 1 – As"
 			+"\n\tCo = As * Cs * (1 - Ab) + Ab * Cb * (1 - As) "
 			+"\n\tAo = As * (1 - Ab) + Ab * (1 - As)";
@@ -571,7 +571,7 @@ function showClickInfo(x, y) {
   let infoS = getInfoByColorBytes(dataS);
   msg += "\nSource     : " + infoS + ". Pos("+xS+", "+yS+")";
   // getInfoByComposite.
-  msg += "\n" + getInfoByComposite(compositeCodeLast, dataD, dataS);
+  msg += "\n" + getInfoByComposite(compositeModeLast, dataD, dataS);
 	// show.
 	const pointSpanTitle = document.getElementById('pointSpanTitle');
 	const pointSpan = document.getElementById('pointSpan');
