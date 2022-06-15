@@ -67,6 +67,8 @@ var blockLeft = 0;
 var blockTop = 0;
 var blockOffsetX = 0;
 var blockOffsetY = 0;
+var lastX = 0;
+var lastY = 0;
 
 /** Draw destination rect.
  *
@@ -217,6 +219,9 @@ function doRefresh() {
 		console.log("doRefresh fail! ", ex);
 	}
 	
+	// show info.
+	showClickInfo(lastX, lastY);
+	
 }
 
 /** Clamp alpha to [0..1] .
@@ -363,17 +368,147 @@ function getInfoByComposite(compositeCode, dataD, dataS) {
 	let i;
 	if ("source-over"==compositeCode) {
 		msg += "\n\tFa = 1; Fb = 1 - As"
-		+"\n\tCo = As * Cs + Ab * Cb * (1 - As)"
-		+"\n\tAo = As + Ab * (1 - As)";
+			+"\n\tCo = As * Cs + Ab * Cb * (1 - As)"
+			+"\n\tAo = As + Ab * (1 - As)";
 		fO = new Array(4);
 		for(i=0; i<COLOR_CHANNELS; ++i) {
 			fO[i] = As * fS[i] + Ab * fD[i] * (1 - As);
 			let name = colorNames[i];
 			msg += `\n${name}o = As * ${name}s + Ab * ${name}b * (1 - As) = ${AsStr} * ${fS[i].toFixed(digits)} + ${AbStr} * ${fD[i].toFixed(digits)} * (1 - ${AsStr}) = ${fO[i].toFixed(digits)}`;
 		}
-		i = ALPHA_INDEX; // Alpha channel.
+		i = ALPHA_INDEX;
 		fO[i] = As + Ab * (1 - As);
 		msg += `\nAo = As + Ab * (1 - As) = AsStr + AbStr * (1 - AsStr) = ${fO[i].toFixed(digits)}`;
+	} if ("source-in"==compositeCode) {
+		msg += "\n\tFa = Ab; Fb = 0"
+			+"\n\tCo = As * Cs * Ab "
+			+"\n\tAo = As * Ab";
+		fO = new Array(4);
+		for(i=0; i<COLOR_CHANNELS; ++i) {
+			fO[i] = As * fS[i] * Ab;
+			let name = colorNames[i];
+			msg += `\n${name}o = As * ${name}s * Ab = ${AsStr} * ${fS[i].toFixed(digits)} * ${AbStr} = ${fO[i].toFixed(digits)}`;
+		}
+		i = ALPHA_INDEX;
+		fO[i] = As * Ab;
+		msg += `\nAo = As * Ab = ${AsStr} * ${AbStr} = ${fO[i].toFixed(digits)}`;
+	} if ("source-out"==compositeCode) {
+		msg += "\n\tFa = 1 – Ab; Fb = 0"
+			+"\n\tCo = As * Cs * (1 - Ab) "
+			+"\n\tAo = As * (1 - Ab)";
+		fO = new Array(4);
+		for(i=0; i<COLOR_CHANNELS; ++i) {
+			fO[i] = As * fS[i] * (1 - Ab);
+			let name = colorNames[i];
+			msg += `\n${name}o = As * ${name}s * (1 - Ab) = ${AsStr} * ${fS[i].toFixed(digits)} * (1 - ${AbStr}) = ${fO[i].toFixed(digits)}`;
+		}
+		i = ALPHA_INDEX;
+		fO[i] = As * (1 - Ab);
+		msg += `\nAo = As * (1 - Ab) = ${AsStr} * (1 - ${AbStr}) = ${fO[i].toFixed(digits)}`;
+	} if ("source-atop"==compositeCode) {
+		msg += "\n\tFa = Ab; Fb = 1 - As"
+			+"\n\tCo = As * Cs * Ab + Ab * Cb * (1 - As) "
+			+"\n\tAo = As * Ab + Ab * (1 - As)";
+		fO = new Array(4);
+		for(i=0; i<COLOR_CHANNELS; ++i) {
+			fO[i] = As * fS[i] * Ab + Ab * fD[i] * (1 - As);
+			let name = colorNames[i];
+			msg += `\n${name}o = As * ${name}s * Ab + Ab * ${name}b * (1 - As) = ${AsStr} * ${fS[i].toFixed(digits)} * ${AbStr} + ${AbStr} * ${fD[i].toFixed(digits)} * (1 - ${AsStr}) = ${fO[i].toFixed(digits)}`;
+		}
+		i = ALPHA_INDEX;
+		fO[i] = As * Ab + Ab * (1 - As);
+		msg += `\nAo = As * Ab + Ab * (1 - As) = ${AsStr} * ${AbStr} + ${AbStr} * (1 - ${AsStr}) = ${fO[i].toFixed(digits)}`;
+	} else if ("destination-over"==compositeCode) {
+		msg += "\n\tFa = 1 - Ab; Fb = 1"
+			+"\n\tCo = As * Cs * (1 - Ab) + Ab * Cb"
+			+"\n\tAo = As * (1 - Ab) + Ab";
+		fO = new Array(4);
+		for(i=0; i<COLOR_CHANNELS; ++i) {
+			fO[i] = As * fS[i] * (1 - Ab) + Ab * fD[i];
+			let name = colorNames[i];
+			msg += `\n${name}o = As * ${name}s * (1 - Ab) + Ab * ${name}b = ${AsStr} * ${fS[i].toFixed(digits)} * (1 - ${AbStr}) + ${AbStr} * ${fD[i].toFixed(digits)} = ${fO[i].toFixed(digits)}`;
+		}
+		i = ALPHA_INDEX;
+		fO[i] = As * (1 - Ab) + Ab;
+		msg += `\nAo = As * (1 - Ab) + Ab = ${AsStr} * (1 - ${AbStr}) + ${AbStr} = ${fO[i].toFixed(digits)}`;
+	} if ("destination-in"==compositeCode) {
+		msg += "\n\tFa = 0; Fb = As"
+			+"\n\tCo = Ab * Cb * As "
+			+"\n\tAo = Ab * As";
+		fO = new Array(4);
+		for(i=0; i<COLOR_CHANNELS; ++i) {
+			fO[i] = Ab * fD[i] * As;
+			let name = colorNames[i];
+			msg += `\n${name}o = Ab * ${name}b * As = ${AbStr} * ${fD[i].toFixed(digits)} * ${AsStr} = ${fO[i].toFixed(digits)}`;
+		}
+		i = ALPHA_INDEX;
+		fO[i] = As * Ab;
+		msg += `\nAo = Ab * As = ${AbStr} * ${AsStr} = ${fO[i].toFixed(digits)}`;
+	} if ("destination-out"==compositeCode) {
+		msg += "\n\tFa = 0; Fb = 1 - As"
+			+"\n\tCo = Ab * Cb * (1 - As) "
+			+"\n\tAo = Ab * (1 - As)";
+		fO = new Array(4);
+		for(i=0; i<COLOR_CHANNELS; ++i) {
+			fO[i] = Ab * fD[i] * (1 - As);
+			let name = colorNames[i];
+			msg += `\n${name}o = Ab * ${name}b * (1 - As) = ${AbStr} * ${fD[i].toFixed(digits)} * (1 - ${AsStr}) = ${fO[i].toFixed(digits)}`;
+		}
+		i = ALPHA_INDEX;
+		fO[i] = Ab * (1 - As);
+		msg += `\nAo = Ab * (1 - As) = ${AbStr} * (1 - ${AsStr}) = ${fO[i].toFixed(digits)}`;
+	} if ("destination-atop"==compositeCode) {
+		msg += "\n\tFa = 1 - Ab; Fb = As"
+			+"\n\tCo = As * Cs * (1 - Ab) + Ab * Cb * As "
+			+"\n\tAo = As * (1 - Ab) + Ab * As";
+		fO = new Array(4);
+		for(i=0; i<COLOR_CHANNELS; ++i) {
+			fO[i] = As * fS[i] * (1 - Ab) + Ab * fD[i] * As;
+			let name = colorNames[i];
+			msg += `\n${name}o = As * ${name}s * (1 - Ab) + Ab * ${name}b * As = ${AsStr} * ${fS[i].toFixed(digits)} * (1 - ${AbStr}) + ${AbStr} * ${fD[i].toFixed(digits)} * ${AsStr} = ${fO[i].toFixed(digits)}`;
+		}
+		i = ALPHA_INDEX;
+		fO[i] = As * (1 - Ab) + Ab * As;
+		msg += `\nAo = As * (1 - Ab) + Ab * As = ${AsStr} * (1 - ${AbStr}) + ${AbStr} * ${AsStr} = ${fO[i].toFixed(digits)}`;
+	} if ("lighter"==compositeCode) {
+		msg += "\n\tFa = 1; Fb = 1"
+			+"\n\tAs * Cs + Ab * Cb "
+			+"\n\tAo = As + Ab";
+		fO = new Array(4);
+		for(i=0; i<COLOR_CHANNELS; ++i) {
+			fO[i] = As * fS[i] + Ab * fD[i];
+			let name = colorNames[i];
+			msg += `\n${name}o = As * ${name}s + Ab * ${name}b = ${AsStr} * ${fS[i].toFixed(digits)} + ${AbStr} * ${fD[i].toFixed(digits)} = ${fO[i].toFixed(digits)}`;
+		}
+		i = ALPHA_INDEX;
+		fO[i] = As + Ab;
+		msg += `\nAo = As + Ab = ${AsStr} + ${AbStr} = ${fO[i].toFixed(digits)}`;
+	} if ("copy"==compositeCode) {
+		msg += "\n\tFa = 1; Fb = 0"
+			+"\n\tCo = As * Cs "
+			+"\n\tAo = As";
+		fO = new Array(4);
+		for(i=0; i<COLOR_CHANNELS; ++i) {
+			fO[i] = As * fS[i];
+			let name = colorNames[i];
+			msg += `\n${name}o = As * ${name}s = ${AsStr} * ${fS[i].toFixed(digits)} = ${fO[i].toFixed(digits)}`;
+		}
+		i = ALPHA_INDEX;
+		fO[i] = As;
+		msg += `\nAo = As = ${AsStr} = ${fO[i].toFixed(digits)}`;
+	} if ("xor"==compositeCode) {
+		msg += "\n\tFa = 1 - Ab; Fb = 1 – As"
+			+"\n\tCo = As * Cs * (1 - Ab) + Ab * Cb * (1 - As) "
+			+"\n\tAo = As * (1 - Ab) + Ab * (1 - As)";
+		fO = new Array(4);
+		for(i=0; i<COLOR_CHANNELS; ++i) {
+			fO[i] = As * fS[i] * (1 - Ab) + Ab * fD[i] * (1 - As);
+			let name = colorNames[i];
+			msg += `\n${name}o = As * ${name}s * (1 - Ab) + Ab * ${name}b * (1 - As) = ${AsStr} * ${fS[i].toFixed(digits)} * (1 - ${AbStr}) + ${AbStr} * ${fD[i].toFixed(digits)} * (1 - ${AsStr}) = ${fO[i].toFixed(digits)}`;
+		}
+		i = ALPHA_INDEX;
+		fO[i] = As * (1 - Ab) + Ab * (1 - As);
+		msg += `\nAo = As * (1 - Ab) + Ab * (1 - As) = ${AsStr} * (1 - ${AbStr}) + ${AbStr} * (1 - ${AsStr}) = ${fO[i].toFixed(digits)}`;
 	}
 	if (null!=fO) {
 		let dataO = fromFloatColor(fO);
@@ -399,6 +534,8 @@ function getInfoByComposite(compositeCode, dataD, dataS) {
  * @param {Number}	y	The y.
  */
 function showClickInfo(x, y) {
+	lastX = x;
+	lastY = y;
   let pixel = ctx.getImageData(x, y, 1, 1);
   let data = pixel.data;
   let rgba = `rgba(${data[0]}, ${data[1]}, ${data[2]}, ${data[3] / 255})`;
