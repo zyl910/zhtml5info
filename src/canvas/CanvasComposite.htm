@@ -35,6 +35,7 @@
 		<option value="color">color</option>
 		<option value="luminosity">luminosity</option>
 	</select>
+	&nbsp;<input type="checkbox" id="chkSourceUseImage" name="chkSourceUseImage" checked onchange="doRefresh()" />SourceUseImage
 	<br/>
 	Destination color: <input id="txtdColor0" type="text" size="20" value="Blue" onchange="doRefresh()" />
 	&nbsp;<input type="checkbox" id="chkdColor1" name="chkdColor1" value="1" onchange="doRefresh()" />
@@ -129,6 +130,8 @@ function doRefresh() {
 	let index = cbotype.selectedIndex;
 	compositeModeLast = "xor";
 	if (index>=0) compositeModeLast = cbotype.options[index].value;
+	const chkSourceUseImage = document.getElementById('chkSourceUseImage');
+	const sourceUseImage = chkSourceUseImage.checked;
 	
 	// color
 	let dColor0 = document.getElementById('txtdColor0').value;
@@ -156,7 +159,31 @@ function doRefresh() {
 	blockOffsetX = Math.floor(blockWidth/4);
 	blockOffsetY = Math.floor(blockHeight/4);
 	
-	// clear
+	// sourceUseImage
+	let sourceImage = null;
+	if (sourceUseImage) {
+		try{
+			let canvasTemp = document.createElement("canvas");
+			canvasTemp.width = blockWidth;
+			canvasTemp.height = blockHeight;
+			//canvas.getContext("2d").drawImage(image, 0, 0);
+			let ctxTemp = canvasTemp.getContext("2d");
+			ctxTemp.save();
+			ctxTemp.clearRect(0, 0, blockWidth, blockHeight);
+			//ctxTemp.globalAlpha = alphaS;
+			drawRectS(ctxTemp, 0, 0, blockWidth, blockHeight, sColor0, sColor1);
+			ctxTemp.restore();
+			// to image.
+			sourceImage = new Image();
+			sourceImage.src = ctxTemp.canvas.toDataURL("image/png");
+		} catch(ex) {
+			sourceImage = null;
+			console.log("Make sourceImage fail! ", ex);
+		}
+	}
+	//console.log("sourceUseImage: ", sourceUseImage, "sourceImage: ", sourceImage);
+	
+	// draw
 	ctx.clearRect(0, 0, cw, ch);
 	try{
 		//ctx.fillStyle = 'blue';
@@ -175,7 +202,11 @@ function doRefresh() {
 		// Bottom Right: source
 		ctx.save();
 		ctx.globalAlpha = alphaS;
-		drawRectS(ctx, blockWidth*2+blockLeft, blockHeight*2+blockTop, blockWidth, blockHeight, sColor0, sColor1);
+		if (null==sourceImage) {
+			drawRectS(ctx, blockWidth*2+blockLeft, blockHeight*2+blockTop, blockWidth, blockHeight, sColor0, sColor1);
+		} else {
+			ctx.drawImage(sourceImage, blockWidth*2+blockLeft, blockHeight*2+blockTop);
+		}
 		ctx.restore();
 		
 		// Top Left: compositeOffset
@@ -186,9 +217,13 @@ function doRefresh() {
 		ctx.beginPath();
 		ctx.rect(0, 0, blockWidth*2, blockHeight*2);
 		ctx.clip();
-		ctx.globalAlpha = alphaS;
 		ctx.globalCompositeOperation = compositeModeLast;
-		drawRectS(ctx, blockLeft-blockOffsetX, blockTop-blockOffsetY, blockWidth, blockHeight, sColor0, sColor1);
+		ctx.globalAlpha = alphaS;
+		if (null==sourceImage) {
+			drawRectS(ctx, blockLeft-blockOffsetX, blockTop-blockOffsetY, blockWidth, blockHeight, sColor0, sColor1);
+		} else {
+			ctx.drawImage(sourceImage, blockLeft-blockOffsetX, blockTop-blockOffsetY);
+		}
 		ctx.restore();
 		
 		// Top Right: composite
@@ -199,9 +234,13 @@ function doRefresh() {
 		ctx.beginPath();
 		ctx.rect(blockWidth*2, 0, blockWidth*2, blockHeight*2);
 		ctx.clip();
-		ctx.globalAlpha = alphaS;
 		ctx.globalCompositeOperation = compositeModeLast;
-		drawRectS(ctx, blockWidth*2+blockLeft, blockTop, blockWidth, blockHeight, sColor0, sColor1);
+		ctx.globalAlpha = alphaS;
+		if (null==sourceImage) {
+			drawRectS(ctx, blockWidth*2+blockLeft, blockTop, blockWidth, blockHeight, sColor0, sColor1);
+		} else {
+			ctx.drawImage(sourceImage, blockWidth*2+blockLeft, blockTop);
+		}
 		ctx.restore();
 
 		// Title
