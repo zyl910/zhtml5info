@@ -57,6 +57,7 @@
 	[compositeOffset, composite]<br/>
 	[destination, source]<br/>
 	<br/>
+	<canvas id="canvasTemp" width="150" height="150"></canvas>
 	<script>
 // https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/globalCompositeOperation
 const canvas = document.getElementById('canvas');
@@ -132,6 +133,16 @@ function doRefresh() {
 	if (index>=0) compositeModeLast = cbotype.options[index].value;
 	const chkSourceUseImage = document.getElementById('chkSourceUseImage');
 	const sourceUseImage = chkSourceUseImage.checked;
+
+	// size
+	//const clientRect = canvas.getBoundingClientRect();
+	const cw = canvas.width, ch = canvas.height;
+	blockWidth = Math.floor(cw/4);
+	blockHeight = Math.floor(ch/4);
+	blockLeft = Math.floor(blockWidth/2);
+	blockTop = Math.floor(blockHeight/2);
+	blockOffsetX = Math.floor(blockWidth/4);
+	blockOffsetY = Math.floor(blockHeight/4);
 	
 	// color
 	let dColor0 = document.getElementById('txtdColor0').value;
@@ -148,22 +159,14 @@ function doRefresh() {
 	const chkAlphaS = document.getElementById('chkAlphaS');
 	if (!chkAlphaD.checked) alphaD=1.0;
 	if (!chkAlphaS.checked) alphaS=1.0;
-
-	// size
-	//const clientRect = canvas.getBoundingClientRect();
-	const cw = canvas.width, ch = canvas.height;
-	blockWidth = Math.floor(cw/4);
-	blockHeight = Math.floor(ch/4);
-	blockLeft = Math.floor(blockWidth/2);
-	blockTop = Math.floor(blockHeight/2);
-	blockOffsetX = Math.floor(blockWidth/4);
-	blockOffsetY = Math.floor(blockHeight/4);
 	
 	// sourceUseImage
 	let sourceImage = null;
 	if (sourceUseImage) {
 		try{
-			let canvasTemp = document.createElement("canvas");
+			//let canvasTemp = document.createElement("canvas");
+			let canvasTemp = document.getElementById('canvasTemp');
+			canvasTemp.style = "display:block";
 			canvasTemp.width = blockWidth;
 			canvasTemp.height = blockHeight;
 			//canvas.getContext("2d").drawImage(image, 0, 0);
@@ -175,13 +178,40 @@ function doRefresh() {
 			ctxTemp.restore();
 			// to image.
 			sourceImage = new Image();
+			sourceImage.onload = function() {
+				doRefresh_draw(sourceImage);
+			}
 			sourceImage.src = ctxTemp.canvas.toDataURL("image/png");
 		} catch(ex) {
 			sourceImage = null;
 			console.log("Make sourceImage fail! ", ex);
 		}
 	}
-	//console.log("sourceUseImage: ", sourceUseImage, "sourceImage: ", sourceImage);
+	console.log("sourceUseImage: ", sourceUseImage, "sourceImage: ", sourceImage);
+	if (null!=sourceImage) return;
+	let canvasTemp = document.getElementById('canvasTemp');
+	canvasTemp.style = "display:none";
+	doRefresh_draw(sourceImage);
+}
+
+function doRefresh_draw(sourceImage) {
+	const cw = canvas.width, ch = canvas.height;
+	
+	// color
+	let dColor0 = document.getElementById('txtdColor0').value;
+	let dColor1 = document.getElementById('txtdColor1').value;
+	let sColor0 = document.getElementById('txtsColor0').value;
+	let sColor1 = document.getElementById('txtsColor1').value;
+	const chkdColor1 = document.getElementById('chkdColor1');
+	const chksColor1 = document.getElementById('chksColor1');
+	if (!chkdColor1.checked) dColor1=dColor0;
+	if (!chksColor1.checked) sColor1=sColor0;
+	let alphaD = clampAlpha(parseFloat(document.getElementById('txtAlphaD').value));
+	let alphaS = clampAlpha(parseFloat(document.getElementById('txtAlphaS').value));
+	const chkAlphaD = document.getElementById('chkAlphaD');
+	const chkAlphaS = document.getElementById('chkAlphaS');
+	if (!chkAlphaD.checked) alphaD=1.0;
+	if (!chkAlphaS.checked) alphaS=1.0;
 	
 	// draw
 	ctx.clearRect(0, 0, cw, ch);
