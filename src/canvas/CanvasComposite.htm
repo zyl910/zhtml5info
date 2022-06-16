@@ -417,11 +417,27 @@ function fromFloatColor(arr) {
 /** Straight alpha color to premultiplie alpha color.
  *
  * @param {Array}	arr	Color's float array.
- * @return	{Array} Returns straight alpha color.
+ * @return	{Array} Returns premultiplie alpha color.
  */
 function alphaStraightToPremultiplie(arr) {
 	var a = arr[3];
 	return [arr[0]*a, arr[1]*a, arr[2]*a, a];
+}
+
+/** Premultiplie alpha color to straight alpha color.
+ *
+ * @param {Array}	fO	Color's float array.
+ * @return	{Array} Returns straight alpha color.
+ */
+function alphaPremultiplieToStraight(arr) {
+	let rt = [arr[0], arr[1], arr[2], arr[3]];
+	let a = arr[3];
+	if (a>0) {
+		for(i=0; i<3; ++i) {
+			rt[i] = rt[i]/a;
+		}
+	}
+	return rt;
 }
 
 /** Get info by composite detail.
@@ -643,18 +659,44 @@ function getInfoByComposite(compositeMode, dataD, dataS) {
 		i = ALPHA_INDEX;
 		fO[i] = Sa + Da - Sa * Da;
 		msg += `\nAo = Sa + Da - Sa * Da = ${SaStr} + ${DaStr} - ${SaStr} * ${DaStr} = ${fO[i].toFixed(digits)}`;
+	} if ("darken"==compositeMode) {
+		msg += "\n\tB(Cb, Cs) = min(Cb, Cs)"
+			+"\n\tAndroid: [Sa + Da - Sa*Da, Sc*(1 - Da) + Dc*(1 - Sa) + min(Sc, Dc)]";
+		fD = alphaStraightToPremultiplie(fD);
+		fS = alphaStraightToPremultiplie(fS);
+		fO = new Array(ALL_CHANNELS);
+		for(i=0; i<COLOR_CHANNELS; ++i) {
+			let name = colorNames[i];
+			let Sc = fS[i];
+			let Dc = fD[i];
+			fO[i] = Sc*(1 - Da) + Dc*(1 - Sa) + Math.min(Sc, Dc);
+			msg += `\n${name}o = S${name}*(1 - Da) + D${name}*(1 - Sa) + min(S${name}, D${name}) = ${fS[i].toFixed(digits)}*(1 - ${DaStr}) + ${fD[i].toFixed(digits)}*(1 - ${SaStr}) + min(${fS[i].toFixed(digits)}, ${fD[i].toFixed(digits)}) = ${fO[i].toFixed(digits)}`;
+		}
+		i = ALPHA_INDEX;
+		fO[i] = Sa + Da - Sa * Da;
+		msg += `\nAo = Sa + Da - Sa * Da = ${SaStr} + ${DaStr} - ${SaStr} * ${DaStr} = ${fO[i].toFixed(digits)}`;
+	} if ("lighten"==compositeMode) {
+		msg += "\n\tB(Cb, Cs) = max(Cb, Cs)"
+			+"\n\tAndroid: [Sa + Da - Sa*Da, Sc*(1 - Da) + Dc*(1 - Sa) + max(Sc, Dc)]";
+		fD = alphaStraightToPremultiplie(fD);
+		fS = alphaStraightToPremultiplie(fS);
+		fO = new Array(ALL_CHANNELS);
+		for(i=0; i<COLOR_CHANNELS; ++i) {
+			let name = colorNames[i];
+			let Sc = fS[i];
+			let Dc = fD[i];
+			fO[i] = Sc*(1 - Da) + Dc*(1 - Sa) + Math.max(Sc, Dc);
+			msg += `\n${name}o = S${name}*(1 - Da) + D${name}*(1 - Sa) + max(S${name}, D${name}) = ${fS[i].toFixed(digits)}*(1 - ${DaStr}) + ${fD[i].toFixed(digits)}*(1 - ${SaStr}) + max(${fS[i].toFixed(digits)}, ${fD[i].toFixed(digits)}) = ${fO[i].toFixed(digits)}`;
+		}
+		i = ALPHA_INDEX;
+		fO[i] = Sa + Da - Sa * Da;
+		msg += `\nAo = Sa + Da - Sa * Da = ${SaStr} + ${DaStr} - ${SaStr} * ${DaStr} = ${fO[i].toFixed(digits)}`;
 	}
 	if (null!=fO) {
 		let dataO = fromFloatColor(fO);
 		let infoO = getInfoByColorBytes(dataO);
 		msg += "\nPremultiplie:" + infoO;
-		let fW = [fO[0], fO[1], fO[2], fO[3]];
-		// Premultiplied alpha to straight alpha.
-		if (fO[ALPHA_INDEX]>0) {
-			for(i=0; i<COLOR_CHANNELS; ++i) {
-				fW[i] = fO[i]/fO[ALPHA_INDEX];
-			}
-		}
+		let fW = alphaPremultiplieToStraight(fO);
 		let dataW = fromFloatColor(fW);
 		let infoW = getInfoByColorBytes(dataW);
 		msg += "\nResult     : " + infoW;
