@@ -51,7 +51,7 @@
 	&nbsp; <span id="destinationSpan">Destination sample</span>,
 	&nbsp; <span id="sourceSpan">Source sample</span>.
 	<br/>
-	<textarea id="txtinfo" rows="15" style="width:95%" readonly></textarea><br/>
+	<textarea id="txtinfo" rows="12" style="width:95%" readonly></textarea><br/>
 	<canvas id="canvas" width="600" height="600" onmousedown="ctx_mousedown(e)"></canvas>
 	<br/>
 	[compositeOffset, composite]<br/>
@@ -678,16 +678,16 @@ function getInfoByComposite(compositeMode, dataD, dataS) {
 		fO[i] = Sa + Da - Sa * Da;
 		msg += `\nAo = Sa + Da - Sa * Da = ${SaStr} + ${DaStr} - ${SaStr} * ${DaStr} = ${fO[i].toFixed(digits)}`;
 	} if ("lighten"==compositeMode) {
-		msg += "\n\tB(Cb, Cs) = max(Cb, Cs)";
+		msg += "\n\tB(Cb, Cs) = max(Cb, Cs);\tCo = As*Cs * (1 - Ab) + Ab*Cb * (1 - As) + As * Ab * Cm;\tAo = As + Ab * (1 - As)";
 		showOut = true;
 		for(i=0; i<COLOR_CHANNELS; ++i) {
 			let name = colorNames[i];
 			let Cs = fS[i];
 			let Cb = fD[i];
 			let Cm = Math.max(Cb, Cs);
-			fO[i] = As*Cs * (1 - Ab) + Ab*Cb * (1 - As)  + As * Ab * Cm;
+			fO[i] = As*Cs * (1 - Ab) + Ab*Cb * (1 - As) + As * Ab * Cm;
 			msg += `\n${name}m = max(${name}b, ${name}s) = max(${Cb.toFixed(digits)}, ${Cs.toFixed(digits)}) = ${Cm.toFixed(digits)}`;
-			msg += `;\t${name}o = As*${name}s * (1 - Ab) + Ab*${name}b * (1 - As)  + As * Ab * ${name}m = ${AsStr}*${Cs.toFixed(digits)} * (1 - ${AbStr}) + ${AbStr}*${Cb.toFixed(digits)} * (1 - ${AsStr})  + ${AsStr} * ${AbStr} * ${Cm.toFixed(digits)} = ${fO[i].toFixed(digits)}`;
+			msg += `;\t${name}o = ${AsStr}*${Cs.toFixed(digits)} * (1 - ${AbStr}) + ${AbStr}*${Cb.toFixed(digits)} * (1 - ${AsStr})  + ${AsStr} * ${AbStr} * ${Cm.toFixed(digits)} = ${fO[i].toFixed(digits)}`;
 		}
 		i = ALPHA_INDEX;
 		fO[i] = As + Ab * (1 - As);
@@ -696,7 +696,7 @@ function getInfoByComposite(compositeMode, dataD, dataS) {
 		msg += "\nPremultiplie:" + info;
 		let fW = alphaPremultiplieToStraight(fO);
 		info = getInfoByColorBytes(fromFloatColor(fW));
-		msg += "\nResult     : " + info;
+		msg += "\nOutput     : " + info;
 		// Android.
 		msg += "\n\tAndroid: [Sa + Da - Sa*Da, Sc*(1 - Da) + Dc*(1 - Sa) + max(Sc, Dc)]";
 		fD = alphaStraightToPremultiplie(fD);
@@ -719,7 +719,7 @@ function getInfoByComposite(compositeMode, dataD, dataS) {
 		let fW = alphaPremultiplieToStraight(fO);
 		let dataW = fromFloatColor(fW);
 		let infoW = getInfoByColorBytes(dataW);
-		msg += "\nResult     : " + infoW;
+		msg += "\nOutput     : " + infoW;
 	}
 	return msg;
 }
