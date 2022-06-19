@@ -187,7 +187,7 @@ function doRefresh() {
 			console.log("Make sourceImage fail! ", ex);
 		}
 	}
-	console.log("sourceUseImage: ", sourceUseImage, "sourceImage: ", sourceImage);
+	//console.log("sourceUseImage: ", sourceUseImage, "sourceImage: ", sourceImage);
 	if (null!=sourceImage) return;
 	let canvasTemp = document.getElementById('canvasTemp');
 	canvasTemp.style = "display:none";
@@ -456,7 +456,7 @@ function getInfoByComposite(compositeMode, dataD, dataS) {
 	let msg = "compositeMode:\t" + compositeMode;
 	let fD = toFloatColor(dataD);
 	let fS = toFloatColor(dataS);
-	let fO = null;
+	let fO = new Array(ALL_CHANNELS);
 	let Ab = fD[ALPHA_INDEX];	// background(destination) alpha.
 	let As = fS[ALPHA_INDEX];	// source alpha.
 	let AbStr = Ab.toFixed(digits);
@@ -465,12 +465,14 @@ function getInfoByComposite(compositeMode, dataD, dataS) {
 	let Da = Ab;
 	let SaStr = AsStr;
 	let DaStr = AbStr;
+	let info;
 	let i;
+	let showOut = false;
 	if ("source-over"==compositeMode) {
 		msg += "\n\tFa = 1; Fb = 1 - As"
 			+"\n\tCo = As * Cs + Ab * Cb * (1 - As)"
 			+"\n\tAo = As + Ab * (1 - As)";
-		fO = new Array(ALL_CHANNELS);
+		showOut = true;
 		for(i=0; i<COLOR_CHANNELS; ++i) {
 			fO[i] = As * fS[i] + Ab * fD[i] * (1 - As);
 			let name = colorNames[i];
@@ -478,12 +480,12 @@ function getInfoByComposite(compositeMode, dataD, dataS) {
 		}
 		i = ALPHA_INDEX;
 		fO[i] = As + Ab * (1 - As);
-		msg += `\nAo = As + Ab * (1 - As) = AsStr + AbStr * (1 - AsStr) = ${fO[i].toFixed(digits)}`;
+		msg += `\nAo = As + Ab * (1 - As) = ${AsStr} + ${AbStr} * (1 - ${AsStr}) = ${fO[i].toFixed(digits)}`;
 	} if ("source-in"==compositeMode) {
 		msg += "\n\tFa = Ab; Fb = 0"
 			+"\n\tCo = As * Cs * Ab "
 			+"\n\tAo = As * Ab";
-		fO = new Array(ALL_CHANNELS);
+		showOut = true;
 		for(i=0; i<COLOR_CHANNELS; ++i) {
 			fO[i] = As * fS[i] * Ab;
 			let name = colorNames[i];
@@ -496,7 +498,7 @@ function getInfoByComposite(compositeMode, dataD, dataS) {
 		msg += "\n\tFa = 1 – Ab; Fb = 0"
 			+"\n\tCo = As * Cs * (1 - Ab) "
 			+"\n\tAo = As * (1 - Ab)";
-		fO = new Array(ALL_CHANNELS);
+		showOut = true;
 		for(i=0; i<COLOR_CHANNELS; ++i) {
 			fO[i] = As * fS[i] * (1 - Ab);
 			let name = colorNames[i];
@@ -509,7 +511,7 @@ function getInfoByComposite(compositeMode, dataD, dataS) {
 		msg += "\n\tFa = Ab; Fb = 1 - As"
 			+"\n\tCo = As * Cs * Ab + Ab * Cb * (1 - As) "
 			+"\n\tAo = As * Ab + Ab * (1 - As)";
-		fO = new Array(ALL_CHANNELS);
+		showOut = true;
 		for(i=0; i<COLOR_CHANNELS; ++i) {
 			fO[i] = As * fS[i] * Ab + Ab * fD[i] * (1 - As);
 			let name = colorNames[i];
@@ -522,7 +524,7 @@ function getInfoByComposite(compositeMode, dataD, dataS) {
 		msg += "\n\tFa = 1 - Ab; Fb = 1"
 			+"\n\tCo = As * Cs * (1 - Ab) + Ab * Cb"
 			+"\n\tAo = As * (1 - Ab) + Ab";
-		fO = new Array(ALL_CHANNELS);
+		showOut = true;
 		for(i=0; i<COLOR_CHANNELS; ++i) {
 			fO[i] = As * fS[i] * (1 - Ab) + Ab * fD[i];
 			let name = colorNames[i];
@@ -535,7 +537,7 @@ function getInfoByComposite(compositeMode, dataD, dataS) {
 		msg += "\n\tFa = 0; Fb = As"
 			+"\n\tCo = Ab * Cb * As "
 			+"\n\tAo = Ab * As";
-		fO = new Array(ALL_CHANNELS);
+		showOut = true;
 		for(i=0; i<COLOR_CHANNELS; ++i) {
 			fO[i] = Ab * fD[i] * As;
 			let name = colorNames[i];
@@ -548,7 +550,7 @@ function getInfoByComposite(compositeMode, dataD, dataS) {
 		msg += "\n\tFa = 0; Fb = 1 - As"
 			+"\n\tCo = Ab * Cb * (1 - As) "
 			+"\n\tAo = Ab * (1 - As)";
-		fO = new Array(ALL_CHANNELS);
+		showOut = true;
 		for(i=0; i<COLOR_CHANNELS; ++i) {
 			fO[i] = Ab * fD[i] * (1 - As);
 			let name = colorNames[i];
@@ -561,7 +563,7 @@ function getInfoByComposite(compositeMode, dataD, dataS) {
 		msg += "\n\tFa = 1 - Ab; Fb = As"
 			+"\n\tCo = As * Cs * (1 - Ab) + Ab * Cb * As "
 			+"\n\tAo = As * (1 - Ab) + Ab * As";
-		fO = new Array(ALL_CHANNELS);
+		showOut = true;
 		for(i=0; i<COLOR_CHANNELS; ++i) {
 			fO[i] = As * fS[i] * (1 - Ab) + Ab * fD[i] * As;
 			let name = colorNames[i];
@@ -574,7 +576,7 @@ function getInfoByComposite(compositeMode, dataD, dataS) {
 		msg += "\n\tFa = 1; Fb = 1"
 			+"\n\tAs * Cs + Ab * Cb "
 			+"\n\tAo = As + Ab";
-		fO = new Array(ALL_CHANNELS);
+		showOut = true;
 		for(i=0; i<COLOR_CHANNELS; ++i) {
 			fO[i] = As * fS[i] + Ab * fD[i];
 			let name = colorNames[i];
@@ -587,7 +589,7 @@ function getInfoByComposite(compositeMode, dataD, dataS) {
 		msg += "\n\tFa = 1; Fb = 0"
 			+"\n\tCo = As * Cs "
 			+"\n\tAo = As";
-		fO = new Array(ALL_CHANNELS);
+		showOut = true;
 		for(i=0; i<COLOR_CHANNELS; ++i) {
 			fO[i] = As * fS[i];
 			let name = colorNames[i];
@@ -600,7 +602,7 @@ function getInfoByComposite(compositeMode, dataD, dataS) {
 		msg += "\n\tFa = 1 - Ab; Fb = 1 – As"
 			+"\n\tCo = As * Cs * (1 - Ab) + Ab * Cb * (1 - As) "
 			+"\n\tAo = As * (1 - Ab) + Ab * (1 - As)";
-		fO = new Array(ALL_CHANNELS);
+		showOut = true;
 		for(i=0; i<COLOR_CHANNELS; ++i) {
 			fO[i] = As * fS[i] * (1 - Ab) + Ab * fD[i] * (1 - As);
 			let name = colorNames[i];
@@ -612,9 +614,9 @@ function getInfoByComposite(compositeMode, dataD, dataS) {
 	} if ("multiply"==compositeMode) {
 		msg += "\n\tB(Cb, Cs) = Cb * Cs "
 			+"\n\tAndroid: [Sa * Da, Sc * Dc]";
+		showOut = true;
 		fD = alphaStraightToPremultiplie(fD);
 		fS = alphaStraightToPremultiplie(fS);
-		fO = new Array(ALL_CHANNELS);
 		for(i=0; i<COLOR_CHANNELS; ++i) {
 			fO[i] = fD[i] * fS[i];
 			let name = colorNames[i];
@@ -626,9 +628,9 @@ function getInfoByComposite(compositeMode, dataD, dataS) {
 	} if ("screen"==compositeMode) {
 		msg += "\n\tB(Cb, Cs) = 1 - [(1 - Cb) x (1 - Cs)] = Cb + Cs -(Cb x Cs) "
 			+"\n\tAndroid: [Sa + Da - Sa * Da, Sc + Dc - Sc * Dc]";
+		showOut = true;
 		fD = alphaStraightToPremultiplie(fD);
 		fS = alphaStraightToPremultiplie(fS);
-		fO = new Array(ALL_CHANNELS);
 		for(i=0; i<COLOR_CHANNELS; ++i) {
 			fO[i] = fS[i] + fD[i] - fS[i] * fD[i];
 			let name = colorNames[i];
@@ -640,9 +642,9 @@ function getInfoByComposite(compositeMode, dataD, dataS) {
 	} if ("overlay"==compositeMode) {
 		msg += "\n\tB(Cb, Cs) = HardLight(Cs, Cb) "
 			+"\n\tAndroid: [Sa + Da - Sa * Da, (2*Dc<Da)?(2*Sc * Dc):(Sa * Da - 2*(Da - Sc)*(Sa - Dc))]";
+		showOut = true;
 		fD = alphaStraightToPremultiplie(fD);
 		fS = alphaStraightToPremultiplie(fS);
-		fO = new Array(ALL_CHANNELS);
 		for(i=0; i<COLOR_CHANNELS; ++i) {
 			let name = colorNames[i];
 			let Sc = fS[i];
@@ -662,9 +664,9 @@ function getInfoByComposite(compositeMode, dataD, dataS) {
 	} if ("darken"==compositeMode) {
 		msg += "\n\tB(Cb, Cs) = min(Cb, Cs)"
 			+"\n\tAndroid: [Sa + Da - Sa*Da, Sc*(1 - Da) + Dc*(1 - Sa) + min(Sc, Dc)]";
+		showOut = true;
 		fD = alphaStraightToPremultiplie(fD);
 		fS = alphaStraightToPremultiplie(fS);
-		fO = new Array(ALL_CHANNELS);
 		for(i=0; i<COLOR_CHANNELS; ++i) {
 			let name = colorNames[i];
 			let Sc = fS[i];
@@ -676,11 +678,44 @@ function getInfoByComposite(compositeMode, dataD, dataS) {
 		fO[i] = Sa + Da - Sa * Da;
 		msg += `\nAo = Sa + Da - Sa * Da = ${SaStr} + ${DaStr} - ${SaStr} * ${DaStr} = ${fO[i].toFixed(digits)}`;
 	} if ("lighten"==compositeMode) {
-		msg += "\n\tB(Cb, Cs) = max(Cb, Cs)"
-			+"\n\tAndroid: [Sa + Da - Sa*Da, Sc*(1 - Da) + Dc*(1 - Sa) + max(Sc, Dc)]";
+		msg += "\n\tB(Cb, Cs) = max(Cb, Cs)";
+		msg += "\n\tCr = (1 - Ab) * Cs + Ab * B(Cb, Cs)";
+		showOut = true;
+		fO1 = new Array(ALL_CHANNELS);
+		fO2 = new Array(ALL_CHANNELS);
+		fT = new Array(ALL_CHANNELS);
+		for(i=0; i<COLOR_CHANNELS; ++i) {
+			let name = colorNames[i];
+			let Cs = fS[i];
+			let Cb = fD[i];
+			let Cm = Math.max(Cb, Cs);
+			let Cr = (1 - Ab) * Cs + Ab * Cm;
+			fO[i] = Cr;
+			fO1[i] = (1 - As) * Cb + As * Cr;
+			let t = (1 - As) * Cb + As * Cm;
+			fO2[i] = (1 - Ab) * Cs + Ab * t;
+			fT[i] = As * Cm + Ab * Cb * (1 - As); // source-over
+			msg += `\n${name}m = max(${name}b, ${name}s) = max(${Cb.toFixed(digits)}, ${Cs.toFixed(digits)}) = ${Cm.toFixed(digits)}`;
+			msg += `;\t${name}r = (1 - Ab) * ${name}s + Ab * ${name}m = (1 - ${AbStr}) * ${Cs.toFixed(digits)} + ${AbStr} * ${Cm.toFixed(digits)} = ${Cr.toFixed(digits)}`;
+		}
+		i = ALPHA_INDEX;
+		fO[i] = As + Ab * (1 - As);
+		msg += `\nAo = As + Ab * (1 - As) = ${AsStr} + ${AbStr} * (1 - ${AsStr}) = ${fO[i].toFixed(digits)}`;
+		fO1[i] = fO[i];
+		fO2[i] = fO[i];
+		fT[i] = fO[i];
+		info = getInfoByColorBytes(fromFloatColor(fO));
+		msg += "\nOutput-W3  : " + info;
+		info = getInfoByColorBytes(fromFloatColor(fO1));
+		msg += "\nOutput-W3-1: " + info;
+		info = getInfoByColorBytes(fromFloatColor(fO2));
+		msg += "\nOutput-W3-2: " + info;
+		info = getInfoByColorBytes(fromFloatColor(fT));
+		msg += "\nsource-over: " + info;
+		// Android.
+		msg += "\n\tAndroid: [Sa + Da - Sa*Da, Sc*(1 - Da) + Dc*(1 - Sa) + max(Sc, Dc)]";
 		fD = alphaStraightToPremultiplie(fD);
 		fS = alphaStraightToPremultiplie(fS);
-		fO = new Array(ALL_CHANNELS);
 		for(i=0; i<COLOR_CHANNELS; ++i) {
 			let name = colorNames[i];
 			let Sc = fS[i];
@@ -689,10 +724,11 @@ function getInfoByComposite(compositeMode, dataD, dataS) {
 			msg += `\n${name}o = S${name}*(1 - Da) + D${name}*(1 - Sa) + max(S${name}, D${name}) = ${fS[i].toFixed(digits)}*(1 - ${DaStr}) + ${fD[i].toFixed(digits)}*(1 - ${SaStr}) + max(${fS[i].toFixed(digits)}, ${fD[i].toFixed(digits)}) = ${fO[i].toFixed(digits)}`;
 		}
 		i = ALPHA_INDEX;
-		fO[i] = Sa + Da - Sa * Da;
+		//fO[i] = Sa + Da - Sa * Da;
+		fO[i] = As + Ab * (1 - As);
 		msg += `\nAo = Sa + Da - Sa * Da = ${SaStr} + ${DaStr} - ${SaStr} * ${DaStr} = ${fO[i].toFixed(digits)}`;
 	}
-	if (null!=fO) {
+	if (showOut) {
 		let dataO = fromFloatColor(fO);
 		let infoO = getInfoByColorBytes(dataO);
 		msg += "\nPremultiplie:" + infoO;
