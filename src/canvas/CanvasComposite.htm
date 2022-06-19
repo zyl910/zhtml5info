@@ -470,8 +470,8 @@ function getInfoByComposite(compositeMode, dataD, dataS) {
 	let showOut = false;
 	if ("source-over"==compositeMode) {
 		msg += "\n\tFa = 1; Fb = 1 - As"
-			+"\n\tCo = As * Cs + Ab * Cb * (1 - As)"
-			+"\n\tAo = As + Ab * (1 - As)";
+			+";\tCo = As * Cs + Ab * Cb * (1 - As)"
+			+";\tAo = As + Ab * (1 - As)";
 		showOut = true;
 		for(i=0; i<COLOR_CHANNELS; ++i) {
 			fO[i] = As * fS[i] + Ab * fD[i] * (1 - As);
@@ -483,8 +483,8 @@ function getInfoByComposite(compositeMode, dataD, dataS) {
 		msg += `\nAo = As + Ab * (1 - As) = ${AsStr} + ${AbStr} * (1 - ${AsStr}) = ${fO[i].toFixed(digits)}`;
 	} if ("source-in"==compositeMode) {
 		msg += "\n\tFa = Ab; Fb = 0"
-			+"\n\tCo = As * Cs * Ab "
-			+"\n\tAo = As * Ab";
+			+";\tCo = As * Cs * Ab "
+			+";\tAo = As * Ab";
 		showOut = true;
 		for(i=0; i<COLOR_CHANNELS; ++i) {
 			fO[i] = As * fS[i] * Ab;
@@ -496,8 +496,8 @@ function getInfoByComposite(compositeMode, dataD, dataS) {
 		msg += `\nAo = As * Ab = ${AsStr} * ${AbStr} = ${fO[i].toFixed(digits)}`;
 	} if ("source-out"==compositeMode) {
 		msg += "\n\tFa = 1 – Ab; Fb = 0"
-			+"\n\tCo = As * Cs * (1 - Ab) "
-			+"\n\tAo = As * (1 - Ab)";
+			+";\tCo = As * Cs * (1 - Ab) "
+			+";\tAo = As * (1 - Ab)";
 		showOut = true;
 		for(i=0; i<COLOR_CHANNELS; ++i) {
 			fO[i] = As * fS[i] * (1 - Ab);
@@ -509,8 +509,8 @@ function getInfoByComposite(compositeMode, dataD, dataS) {
 		msg += `\nAo = As * (1 - Ab) = ${AsStr} * (1 - ${AbStr}) = ${fO[i].toFixed(digits)}`;
 	} if ("source-atop"==compositeMode) {
 		msg += "\n\tFa = Ab; Fb = 1 - As"
-			+"\n\tCo = As * Cs * Ab + Ab * Cb * (1 - As) "
-			+"\n\tAo = As * Ab + Ab * (1 - As)";
+			+";\tCo = As * Cs * Ab + Ab * Cb * (1 - As) "
+			+";\tAo = As * Ab + Ab * (1 - As)";
 		showOut = true;
 		for(i=0; i<COLOR_CHANNELS; ++i) {
 			fO[i] = As * fS[i] * Ab + Ab * fD[i] * (1 - As);
@@ -522,8 +522,8 @@ function getInfoByComposite(compositeMode, dataD, dataS) {
 		msg += `\nAo = As * Ab + Ab * (1 - As) = ${AsStr} * ${AbStr} + ${AbStr} * (1 - ${AsStr}) = ${fO[i].toFixed(digits)}`;
 	} else if ("destination-over"==compositeMode) {
 		msg += "\n\tFa = 1 - Ab; Fb = 1"
-			+"\n\tCo = As * Cs * (1 - Ab) + Ab * Cb"
-			+"\n\tAo = As * (1 - Ab) + Ab";
+			+";\tCo = As * Cs * (1 - Ab) + Ab * Cb"
+			+";\tAo = As * (1 - Ab) + Ab";
 		showOut = true;
 		for(i=0; i<COLOR_CHANNELS; ++i) {
 			fO[i] = As * fS[i] * (1 - Ab) + Ab * fD[i];
@@ -535,8 +535,8 @@ function getInfoByComposite(compositeMode, dataD, dataS) {
 		msg += `\nAo = As * (1 - Ab) + Ab = ${AsStr} * (1 - ${AbStr}) + ${AbStr} = ${fO[i].toFixed(digits)}`;
 	} if ("destination-in"==compositeMode) {
 		msg += "\n\tFa = 0; Fb = As"
-			+"\n\tCo = Ab * Cb * As "
-			+"\n\tAo = Ab * As";
+			+";\tCo = Ab * Cb * As "
+			+";\tAo = Ab * As";
 		showOut = true;
 		for(i=0; i<COLOR_CHANNELS; ++i) {
 			fO[i] = Ab * fD[i] * As;
@@ -548,8 +548,8 @@ function getInfoByComposite(compositeMode, dataD, dataS) {
 		msg += `\nAo = Ab * As = ${AbStr} * ${AsStr} = ${fO[i].toFixed(digits)}`;
 	} if ("destination-out"==compositeMode) {
 		msg += "\n\tFa = 0; Fb = 1 - As"
-			+"\n\tCo = Ab * Cb * (1 - As) "
-			+"\n\tAo = Ab * (1 - As)";
+			+";\tCo = Ab * Cb * (1 - As) "
+			+";\tAo = Ab * (1 - As)";
 		showOut = true;
 		for(i=0; i<COLOR_CHANNELS; ++i) {
 			fO[i] = Ab * fD[i] * (1 - As);
@@ -561,8 +561,8 @@ function getInfoByComposite(compositeMode, dataD, dataS) {
 		msg += `\nAo = Ab * (1 - As) = ${AbStr} * (1 - ${AsStr}) = ${fO[i].toFixed(digits)}`;
 	} if ("destination-atop"==compositeMode) {
 		msg += "\n\tFa = 1 - Ab; Fb = As"
-			+"\n\tCo = As * Cs * (1 - Ab) + Ab * Cb * As "
-			+"\n\tAo = As * (1 - Ab) + Ab * As";
+			+";\tCo = As * Cs * (1 - Ab) + Ab * Cb * As "
+			+";\tAo = As * (1 - Ab) + Ab * As";
 		showOut = true;
 		for(i=0; i<COLOR_CHANNELS; ++i) {
 			fO[i] = As * fS[i] * (1 - Ab) + Ab * fD[i] * As;
@@ -574,8 +574,8 @@ function getInfoByComposite(compositeMode, dataD, dataS) {
 		msg += `\nAo = As * (1 - Ab) + Ab * As = ${AsStr} * (1 - ${AbStr}) + ${AbStr} * ${AsStr} = ${fO[i].toFixed(digits)}`;
 	} if ("lighter"==compositeMode) {
 		msg += "\n\tFa = 1; Fb = 1"
-			+"\n\tAs * Cs + Ab * Cb "
-			+"\n\tAo = As + Ab";
+			+";\tAs * Cs + Ab * Cb "
+			+";\tAo = As + Ab";
 		showOut = true;
 		for(i=0; i<COLOR_CHANNELS; ++i) {
 			fO[i] = As * fS[i] + Ab * fD[i];
@@ -584,11 +584,12 @@ function getInfoByComposite(compositeMode, dataD, dataS) {
 		}
 		i = ALPHA_INDEX;
 		fO[i] = As + Ab;
-		msg += `\nAo = As + Ab = ${AsStr} + ${AbStr} = ${fO[i].toFixed(digits)}`;
+		if (fO[i]>1) fO[i]=1;
+		msg += `\nAo = Saturate(As + Ab) = Saturate(${AsStr} + ${AbStr}) = ${fO[i].toFixed(digits)}`;
 	} if ("copy"==compositeMode) {
 		msg += "\n\tFa = 1; Fb = 0"
-			+"\n\tCo = As * Cs "
-			+"\n\tAo = As";
+			+";\tCo = As * Cs "
+			+";\tAo = As";
 		showOut = true;
 		for(i=0; i<COLOR_CHANNELS; ++i) {
 			fO[i] = As * fS[i];
@@ -600,8 +601,8 @@ function getInfoByComposite(compositeMode, dataD, dataS) {
 		msg += `\nAo = As = ${AsStr} = ${fO[i].toFixed(digits)}`;
 	} if ("xor"==compositeMode) {
 		msg += "\n\tFa = 1 - Ab; Fb = 1 – As"
-			+"\n\tCo = As * Cs * (1 - Ab) + Ab * Cb * (1 - As) "
-			+"\n\tAo = As * (1 - Ab) + Ab * (1 - As)";
+			+";\tCo = As * Cs * (1 - Ab) + Ab * Cb * (1 - As) "
+			+";\tAo = As * (1 - Ab) + Ab * (1 - As)";
 		showOut = true;
 		for(i=0; i<COLOR_CHANNELS; ++i) {
 			fO[i] = As * fS[i] * (1 - Ab) + Ab * fD[i] * (1 - As);
@@ -612,8 +613,8 @@ function getInfoByComposite(compositeMode, dataD, dataS) {
 		fO[i] = As * (1 - Ab) + Ab * (1 - As);
 		msg += `\nAo = As * (1 - Ab) + Ab * (1 - As) = ${AsStr} * (1 - ${AbStr}) + ${AbStr} * (1 - ${AsStr}) = ${fO[i].toFixed(digits)}`;
 	} if ("multiply"==compositeMode) {
-		msg += "\n\tB(Cb, Cs) = Cb * Cs "
-			+"\n\tAndroid: [Sa * Da, Sc * Dc]";
+		msg += "\n\tB(Cb, Cs) = Cb * Cs ";
+		msg += "\n\tAndroid: [Sa * Da, Sc * Dc]";
 		showOut = true;
 		fD = alphaStraightToPremultiplie(fD);
 		fS = alphaStraightToPremultiplie(fS);
@@ -626,8 +627,8 @@ function getInfoByComposite(compositeMode, dataD, dataS) {
 		fO[i] = Ab * As;
 		msg += `\nAo = Ab * As = ${AbStr} * ${AsStr} = ${fO[i].toFixed(digits)}`;
 	} if ("screen"==compositeMode) {
-		msg += "\n\tB(Cb, Cs) = 1 - [(1 - Cb) x (1 - Cs)] = Cb + Cs -(Cb x Cs) "
-			+"\n\tAndroid: [Sa + Da - Sa * Da, Sc + Dc - Sc * Dc]";
+		msg += "\n\tB(Cb, Cs) = 1 - [(1 - Cb) * (1 - Cs)] = Cb + Cs -(Cb * Cs) ";
+		msg += "\n\tAndroid: [Sa + Da - Sa * Da, Sc + Dc - Sc * Dc]";
 		showOut = true;
 		fD = alphaStraightToPremultiplie(fD);
 		fS = alphaStraightToPremultiplie(fS);
@@ -640,8 +641,8 @@ function getInfoByComposite(compositeMode, dataD, dataS) {
 		fO[i] = Sa + Da - Sa * Da;
 		msg += `\nAo = Sa + Da - Sa * Da = ${SaStr} + ${DaStr} - ${SaStr} * ${DaStr} = ${fO[i].toFixed(digits)}`;
 	} if ("overlay"==compositeMode) {
-		msg += "\n\tB(Cb, Cs) = HardLight(Cs, Cb) "
-			+"\n\tAndroid: [Sa + Da - Sa * Da, (2*Dc<Da)?(2*Sc * Dc):(Sa * Da - 2*(Da - Sc)*(Sa - Dc))]";
+		msg += "\n\tB(Cb, Cs) = HardLight(Cs, Cb) ";
+		msg += "\n\tAndroid: [Sa + Da - Sa * Da, (2*Dc<Da)?(2*Sc * Dc):(Sa * Da - 2*(Da - Sc)*(Sa - Dc))]";
 		showOut = true;
 		fD = alphaStraightToPremultiplie(fD);
 		fS = alphaStraightToPremultiplie(fS);
@@ -662,8 +663,8 @@ function getInfoByComposite(compositeMode, dataD, dataS) {
 		fO[i] = Sa + Da - Sa * Da;
 		msg += `\nAo = Sa + Da - Sa * Da = ${SaStr} + ${DaStr} - ${SaStr} * ${DaStr} = ${fO[i].toFixed(digits)}`;
 	} if ("darken"==compositeMode) {
-		msg += "\n\tB(Cb, Cs) = min(Cb, Cs)"
-			+"\n\tAndroid: [Sa + Da - Sa*Da, Sc*(1 - Da) + Dc*(1 - Sa) + min(Sc, Dc)]";
+		msg += "\n\tB(Cb, Cs) = min(Cb, Cs)";
+		msg += "\n\tAndroid: [Sa + Da - Sa*Da, Sc*(1 - Da) + Dc*(1 - Sa) + min(Sc, Dc)]";
 		showOut = true;
 		fD = alphaStraightToPremultiplie(fD);
 		fS = alphaStraightToPremultiplie(fS);
