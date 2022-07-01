@@ -801,6 +801,25 @@ function getInfoByComposite(compositeMode, dataD, dataS) {
 		i = ALPHA_INDEX;
 		fO[i] = Sa + Da - Sa * Da;
 		msg += `\nAo = Sa + Da - Sa * Da = ${SaStr} + ${DaStr} - ${SaStr} * ${DaStr} = ${fO[i].toFixed(digits)}`;
+	} if ("luminosity"==compositeMode) {
+		msg += "\n\tB(Cb, Cs) = SetLum(Cb, Lum(Cs));\tCo = As*Cs * (1 - Ab) + Ab*Cb * (1 - As) + As * Ab * Cm;\tAo = As + Ab * (1 - As)";
+		showOut = true;
+		let l = Lum(fS);
+		msg += `\nl = Lum(Cs) = 0.299 * R + 0.587 * G + 0.114 * B = 0.299 * ${fS[0].toFixed(digits)} + 0.587 * ${fS[0].toFixed(digits)} + 0.114 * ${fS[0].toFixed(digits)} = ${l.toFixed(digits)}`;
+		let fM = SetLum(fD, l);
+		info = getInfoByColorBytes(fromFloatColor(fM));
+		msg += "\nCm         : " + info;
+		for(i=0; i<COLOR_CHANNELS; ++i) {
+			let name = colorNames[i];
+			let Cs = fS[i];
+			let Cb = fD[i];
+			let Cm = fM[i];
+			fO[i] = As*Cs * (1 - Ab) + Ab*Cb * (1 - As) + As * Ab * Cm;
+			msg += `\n${name}o = ${AsStr}*${Cs.toFixed(digits)} * (1 - ${AbStr}) + ${AbStr}*${Cb.toFixed(digits)} * (1 - ${AsStr})  + ${AsStr} * ${AbStr} * ${Cm.toFixed(digits)} = ${fO[i].toFixed(digits)}`;
+		}
+		i = ALPHA_INDEX;
+		fO[i] = As + Ab * (1 - As);
+		msg += `\nAo = As + Ab * (1 - As) = ${AsStr} + ${AbStr} * (1 - ${AsStr}) = ${fO[i].toFixed(digits)}`;
 	}
 	if (showOut) {
 		let dataO = fromFloatColor(fO);
@@ -812,6 +831,54 @@ function getInfoByComposite(compositeMode, dataD, dataS) {
 		msg += "\nOutput     : " + infoW;
 	}
 	return msg;
+}
+
+/** Get luminosity.
+ *
+ * @param {Number[]}	C	Color's float array. Use straight alpha.
+ * @return	{Number} Returns a luminosity.
+ */
+function Lum(C) {
+	return 0.299 * C[0] + 0.587 * C[1] + 0.114 * C[2];
+}
+
+/** Clip color.
+ *
+ * @param {Number[]}	C	Color's float array. Use straight alpha.
+ * @return	{Number[]} Returns new color.
+ */
+function ClipColor(C) {
+	let L = Lum(C);
+	let n = Math.min(C[0], C[1], C[2]);
+	let x = Math.max(C[0], C[1], C[2]);
+	// if(n < 0) C = L + (((C - L) * L) / (L - n))
+	// if(x > 1) C = L + (((C - L) * (1 - L)) / (x - L))
+	let rt = [C[0], C[1], C[2], C[3]];
+	let i;
+	for(i=0; i<3; ++i) {
+		let t = C[i];
+		if(n < 0) {
+			t = L + (((t - L) * L) / (L - n))
+		}
+		if(x > 1) {
+			t = L + (((t - L) * (1 - L)) / (x - L))
+		}
+		rt[i] = t;
+	}
+	return rt;
+}
+
+/** Set luminosity.
+ *
+ * @param {Number[]}	C	Color's float array. Use straight alpha.
+ * @param {Number}	l	The new luminosity.
+ * @return	{Number[]} Returns new color.
+ */
+function SetLum(C, l) {
+	let d = l - Lum(C);
+	let rt = [C[0]+d, C[1]+d, C[2]+d, C[3]];
+	rt = ClipColor(rt);
+	return rt;
 }
 
 /** Show click info.
