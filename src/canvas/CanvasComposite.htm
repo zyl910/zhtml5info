@@ -195,6 +195,7 @@ function doRefresh() {
 }
 
 function doRefresh_draw(sourceImage) {
+	const useClip = true;
 	const cw = canvas.width, ch = canvas.height;
 	
 	// color
@@ -244,9 +245,11 @@ function doRefresh_draw(sourceImage) {
 		ctx.save();
 		ctx.globalAlpha = alphaD;
 		drawRectD(ctx, blockLeft, blockTop, blockWidth, blockHeight, dColor0, dColor1);
-		ctx.beginPath();
-		ctx.rect(0, 0, blockWidth*2, blockHeight*2);
-		ctx.clip();
+		if (useClip) {
+			ctx.beginPath();
+			ctx.rect(0, 0, blockWidth*2, blockHeight*2);
+			ctx.clip();
+		}
 		ctx.globalCompositeOperation = compositeModeLast;
 		ctx.globalAlpha = alphaS;
 		if (null==sourceImage) {
@@ -261,9 +264,11 @@ function doRefresh_draw(sourceImage) {
 		ctx.save();
 		ctx.globalAlpha = alphaD;
 		drawRectD(ctx, blockWidth*2+blockLeft, blockTop, blockWidth, blockHeight, dColor0, dColor1);
-		ctx.beginPath();
-		ctx.rect(blockWidth*2, 0, blockWidth*2, blockHeight*2);
-		ctx.clip();
+		if (useClip) {
+			ctx.beginPath();
+			ctx.rect(blockWidth*2, 0, blockWidth*2, blockHeight*2);
+			ctx.clip();
+		}
 		ctx.globalCompositeOperation = compositeModeLast;
 		ctx.globalAlpha = alphaS;
 		if (null==sourceImage) {
