@@ -30,67 +30,116 @@
 
 <script type="text/javascript">
 const clipboardObj = navigator.clipboard;
+var reduceExclude = "";
 
-function reduceEmptyLine(lines, mode) {
+function onCheck_MethodUppercasePrefix(s, last, userobj) {
+	var rt = false;
+	if (s.length>0) {
+		// Check need join.
+		var s1 = s.trimLeft();
+		var ch = s1.charAt(0);
+		var p = s1.indexOf("(");
+		var isFirst = ('A'<=ch)&&(ch<='Z')&&(p>0);
+		if (isFirst) {
+			var fname = s1.substring(0, p-1);
+			var fname1 = fname.replace(/(^s*)|(s*$)/g, "");
+			if (fname.length !== fname1.length) {
+				isFirst = false;
+			}
+			if (fname.indexOf(",")>=0) {
+				isFirst = false;
+			}
+		}
+		rt = !isFirst;
+	} else {
+		// Check ignore line.
+		if (reduceExclude.length>0) {
+			if (last.indexOf(reduceExclude)>=0) {
+				rt = true;
+			}
+		}
+	}
+	return rt;
+}
+
+/** Reduce empty line - Ex.
+ *
+ * @param {String[]}	lines	Source lines.
+ * @param {Function}	(optional) onCheck	On check callback. Prototype: `function(s, last, userobj)` . s 非空时用于判断是否应合并为一行, s为空时判断是否忽略该行.
+ * @param {String}	(optional) separatorJoin	The separator by join.
+ * @param {Object}	(optional) userobj	The userobj.
+ * @return {String[]}	Return lines.
+ */
+function reduceEmptyLineEx(lines, onCheck, separatorJoin, userobj) {
 	var rt = [];
 	var separatorOnMutil = "; ";
 	var last = "";
 	var i;
 	//console.log(lines);
+	separatorJoin = separatorJoin || "";
 	for(i=0; i<lines.length; ++i) {
 		var s = lines[i];
 		var isEmpty = s.replace(/(^s*)|(s*$)/g, "").length ==0;
 		if (!isEmpty) {
-			if (1==mode) {
-				var s1 = s.trimLeft();
-				var ch = s1.charAt(0);
-				var p = s1.indexOf("(");
-				var isFirst = ('A'<=ch)&&(ch<='Z')&&(p>0);
-				if (isFirst) {
-					var fname = s1.substring(0, p-1);
-					var fname1 = fname.replace(/(^s*)|(s*$)/g, "");
-					if (fname.length !== fname1.length) {
-						isFirst = false;
-					}
-					if (fname.indexOf(",")>=0) {
-						isFirst = false;
-					}
+			var needJoin = false;
+			if (!!onCheck) needJoin = onCheck(s, last, userobj);
+			if (needJoin) {
+				var separatorNeed = false;
+				if (last.length>0) {
+					ch = last.charAt(last.length-1);
+					var charEmpty = (" "==ch) || ("\t"==ch);
+					separatorNeed = !charEmpty;
 				}
-				if (isFirst) {
-					if (last.length>0) {
-						rt.push(last);
-					}
-					last = s;
+				if (separatorNeed) {
+					last += separatorOnMutil + s;
 				} else {
-					if (last.length>0) {
-						ch = last.charAt(last.length-1);
-						var charEmpty = (" "==ch) || ("\t"==ch);
-						if (charEmpty) {
-							last += s;
-						} else {
-							last += separatorOnMutil + s;
-						}
-					}
+					last += s;
 				}
 			} else {
-				rt.push(s);
+				// append.
+				if (last.length>0) {
+					var ignoreLine = false;
+					if (!!onCheck) ignoreLine = onCheck("", last, userobj);
+					if (!ignoreLine) {
+						rt.push(last);
+					}
+				}
+				// update.
+				last = s;
 			}
 		}
 	}
 	// done.
-	if (1==mode) {
-		if (last.length>0) {
+	if (last.length>0) {
+		// append.
+		var ignoreLine = false;
+		if (!!onCheck) ignoreLine = onCheck("", last, userobj);
+		if (!ignoreLine) {
 			rt.push(last);
 		}
 	}
 	return rt;
 }
 
+function reduceEmptyLine(lines, mode) {
+	var rt = [];
+	var onCheck = null;
+	var separatorJoin = "; ";
+	var userobj = null;
+	if (1==mode) onCheck=onCheck_MethodUppercasePrefix;
+	rt = reduceEmptyLineEx(lines, onCheck, separatorJoin, userobj);
+	return rt;
+}
+
 function doReduce() {
 	const cboMode = document.getElementById('cboMode');
+	const chkExclude = document.getElementById('chkExclude');
+	const txtExclude = document.getElementById('txtExclude');
 	const txtS = document.getElementById('txtS');
 	const txtD = document.getElementById('txtD');
 	var mode = cboMode.selectedIndex;
+	reduceExclude = "";
+	if (chkExclude.checked) reduceExclude=txtExclude.value;
 	var lines = txtS.value.split("\n");
 	var lines2 = reduceEmptyLine(lines, mode);
 	var dst = lines2.join("\n");
@@ -105,16 +154,16 @@ function doPasteDo() {
 		txtS.value = "";
 		txtS.select();
 		document.execCommand('paste');
+		// do.
+		doReduce();
 	} else {
-		(async () => {
-		  const text = await clipboardObj.readText();
+		clipboardObj.readText().then(function(text){
 		  //console.log(text);
 		  txtS.value = text;
-		})();
+			// do.
+			doReduce();
+		});
 	}
-	// do.
-	doReduce();
-	// copy.
 }
 
 function clearSource() {
