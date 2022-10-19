@@ -41,8 +41,9 @@ function onCheck_MethodUppercasePrefix(s, last, userobj) {
 		var p = s1.indexOf("(");
 		var isFirst = ('A'<=ch)&&(ch<='Z')&&(p>0);
 		if (isFirst) {
-			var fname = s1.substring(0, p-1);
-			var fname1 = fname.replace(/(^s*)|(s*$)/g, "");
+			var fname = s1.substring(0, p);
+			//var fname1 = fname.replace(/(^s*)|(s*$)/g, "");
+			var fname1 = fname.replace(/\s+/g,"");
 			if (fname.length !== fname1.length) {
 				isFirst = false;
 			}
@@ -79,7 +80,8 @@ function reduceEmptyLineEx(lines, onCheck, separatorJoin, userobj) {
 	separatorJoin = separatorJoin || "";
 	for(i=0; i<lines.length; ++i) {
 		var s = lines[i];
-		var isEmpty = s.replace(/(^s*)|(s*$)/g, "").length ==0;
+		//var isEmpty = s.replace(/(^s*)|(s*$)/g, "").length ==0;
+		var isEmpty = s.replace(/\s+/g,"").length ==0;
 		if (!isEmpty) {
 			var needJoin = false;
 			if (!!onCheck) needJoin = onCheck(s, last, userobj);
