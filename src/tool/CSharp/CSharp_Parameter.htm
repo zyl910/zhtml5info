@@ -1,0 +1,208 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<title>CSharp_Parameter (C#参数工具)</title>
+</head>
+<body>
+<h1>CSharp_Parameter (C#参数工具)</h1>
+<p>用于批量增加或移除参数.</p>
+
+<br />
+<span style="display:none">
+<input type="button" title="Do(执行精简)" value="Do" onclick="doReduce();" />
+&nbsp; Mode: <select id="cboMode"">
+		<option value="0">Normal</option>
+		<option value="1" selected="selected">MethodUppercasePrefix</option>
+	</select>
+&nbsp;<input type="checkbox" id="chkExclude" name="chkExclude" value="1" />Exclude <input id="txtExclude" type="text" size="20" value="(继承自" />
+&nbsp; <input type="button" title="PasteDo(粘贴并执行)" value="PasteDo" onclick="doPasteDo();" />
+</span>
+<span title="参数类型来源于源参数列表的第几项?">Parameter type by index</span> <input id="txtTypeIndex" type="text" size="3" value="0" />
+&nbsp; <input type="button" title="ClearSource(清空源文本框)" value="clearSource" onclick="clearSource();" />
+<br />
+<input type="checkbox" id="chkApplyComment" name="chkApplyComment" value="1" checked />Apply to document comment
+&nbsp; <input type="checkbox" id="chkApplyCommentClass" name="chkApplyCommentClass" value="1" checked />Class filter:<input id="txtApplyCommentClass" type="text" size="20" value="I.*" />
+&nbsp; <input type="checkbox" id="chkApplyCode" name="chkApplyCode" value="1" checked />Apply to body code
+<br />
+<input type="button" title="Add parameter(增加参数)" value="Add parameter" onclick="doAddParameter();" />
+&nbsp; Parameter names <input id="txtNames" type="text" size="24" value="args0" />
+&nbsp; <input type="button" title="Paste do - Add parameter(粘贴并执行)" value="Paste do" onclick="doAddParameterPaste();" />
+<br />
+<input type="button" title="Remove parameter(移除参数)" value="Remove parameter" onclick="doRemoveParameter();" />
+&nbsp; Remove index <input id="txtRemoveIndex" type="text" size="3" value="-1" />
+&nbsp; (-1表示倒数第1项)
+&nbsp; <input type="button" title="Paste do - Remove parameter(粘贴并执行)" value="Paste do" onclick="doRemoveParameterPaste();" />
+<br />
+<br />
+<div>
+	<div style="display:inline-block; width:45%">
+		<textarea id="txtS" rows="30" style="width: 100%"></textarea>
+	</div>
+	&nbsp; &nbsp; 
+	<div style="display:inline-block; width:45%">
+		<textarea id="txtD" rows="30" style="width: 100%"></textarea>
+	</div>
+</div>
+
+<script type="text/javascript">
+const clipboardObj = navigator.clipboard;
+var reduceExclude = "";
+
+function onCheck_MethodUppercasePrefix(s, last, userobj) {
+	var rt = false;
+	if (s.length>0) {
+		// Check need join.
+		var s1 = s.trimLeft();
+		var ch = s1.charAt(0);
+		var p = s1.indexOf("(");
+		var isFirst = ('A'<=ch)&&(ch<='Z')&&(p>0);
+		if (isFirst) {
+			var fname = s1.substring(0, p);
+			//var fname1 = fname.replace(/(^s*)|(s*$)/g, "");
+			var fname1 = fname.replace(/\s+/g,"");
+			if (fname.length !== fname1.length) {
+				isFirst = false;
+			}
+			if (fname.indexOf(",")>=0) {
+				isFirst = false;
+			}
+		}
+		rt = !isFirst;
+	} else {
+		// Check ignore line.
+		if (reduceExclude.length>0) {
+			if (last.indexOf(reduceExclude)>=0) {
+				rt = true;
+			}
+		}
+	}
+	return rt;
+}
+
+/** Reduce empty line - Ex.
+ *
+ * @param {String[]}	lines	Source lines.
+ * @param {Function}	(optional) onCheck	On check callback. Prototype: `function(s, last, userobj)` . s 非空时用于判断是否应合并为一行, s为空时判断是否忽略该行.
+ * @param {String}	(optional) separatorJoin	The separator by join.
+ * @param {Object}	(optional) userobj	The userobj.
+ * @return {String[]}	Return lines.
+ */
+function reduceEmptyLineEx(lines, onCheck, separatorJoin, userobj) {
+	var rt = [];
+	var separatorOnMutil = "; ";
+	var last = "";
+	var i;
+	//console.log(lines);
+	separatorJoin = separatorJoin || "";
+	for(i=0; i<lines.length; ++i) {
+		var s = lines[i];
+		//var isEmpty = s.replace(/(^s*)|(s*$)/g, "").length ==0;
+		var isEmpty = s.replace(/\s+/g,"").length ==0;
+		if (!isEmpty) {
+			var needJoin = false;
+			if (!!onCheck) needJoin = onCheck(s, last, userobj);
+			if (needJoin) {
+				var separatorNeed = false;
+				if (last.length>0) {
+					ch = last.charAt(last.length-1);
+					var charEmpty = (" "==ch) || ("\t"==ch);
+					separatorNeed = !charEmpty;
+				}
+				if (separatorNeed) {
+					last += separatorOnMutil + s;
+				} else {
+					last += s;
+				}
+			} else {
+				// append.
+				if (last.length>0) {
+					var ignoreLine = false;
+					if (!!onCheck) ignoreLine = onCheck("", last, userobj);
+					if (!ignoreLine) {
+						rt.push(last);
+					}
+				}
+				// update.
+				last = s;
+			}
+		}
+	}
+	// done.
+	if (last.length>0) {
+		// append.
+		var ignoreLine = false;
+		if (!!onCheck) ignoreLine = onCheck("", last, userobj);
+		if (!ignoreLine) {
+			rt.push(last);
+		}
+	}
+	return rt;
+}
+
+function reduceEmptyLine(lines, mode) {
+	var rt = [];
+	var onCheck = null;
+	var separatorJoin = "; ";
+	var userobj = null;
+	if (1==mode) onCheck=onCheck_MethodUppercasePrefix;
+	rt = reduceEmptyLineEx(lines, onCheck, separatorJoin, userobj);
+	return rt;
+}
+
+function doReduce() {
+	const cboMode = document.getElementById('cboMode');
+	const chkExclude = document.getElementById('chkExclude');
+	const txtExclude = document.getElementById('txtExclude');
+	const txtS = document.getElementById('txtS');
+	const txtD = document.getElementById('txtD');
+	var mode = cboMode.selectedIndex;
+	reduceExclude = "";
+	if (chkExclude.checked) reduceExclude=txtExclude.value;
+	var lines = txtS.value.split("\n");
+	var lines2 = reduceEmptyLine(lines, mode);
+	var dst = lines2.join("\n");
+	txtD.value = dst;
+}
+
+function pasteAndRun(callback) {
+	const txtS = document.getElementById('txtS');
+	//const txtD = document.getElementById('txtD');
+	// paste.
+	if (!clipboardObj) {
+		txtS.value = "";
+		txtS.select();
+		document.execCommand('paste');
+		// do.
+		if (!!callback) callback();
+	} else {
+		clipboardObj.readText().then(function(text){
+		  //console.log(text);
+		  txtS.value = text;
+			// do.
+			if (!!callback) callback();
+		});
+	}
+}
+
+function doPasteDo() {
+	doPasteDo(doReduce);
+}
+
+function clearSource() {
+	const txtS = document.getElementById('txtS');
+	txtS.value = "";
+}
+
+/** 初始化. */
+function init() {
+	// compatibility.
+	if (!window.URL) {
+		window.URL = window.webkitURL || window.mozURL || window.msURL;
+	}
+}
+init();
+
+</script>
+</body>
+</html>
