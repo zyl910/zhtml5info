@@ -8,7 +8,6 @@
 <h1>CSharp_Parameter (C#参数工具)</h1>
 <p>用于批量增加或移除参数.</p>
 
-<br />
 <span style="display:none">
 <input type="button" title="Do(执行精简)" value="Do" onclick="doReduce();" />
 &nbsp; Mode: <select id="cboMode"">
@@ -18,8 +17,10 @@
 &nbsp;<input type="checkbox" id="chkExclude" name="chkExclude" value="1" />Exclude <input id="txtExclude" type="text" size="20" value="(继承自" />
 &nbsp; <input type="button" title="PasteDo(粘贴并执行)" value="PasteDo" onclick="doPasteDo();" />
 </span>
+<br />
 <span title="参数类型来源于源参数列表的第几项?">Parameter type by index</span> <input id="txtTypeIndex" type="text" size="3" value="0" />
-&nbsp; <input type="button" title="ClearSource(清空源文本框)" value="clearSource" onclick="clearSource();" />
+&nbsp; <input type="checkbox" id="chkParameterModifier" name="chkParameterModifier" value="1" />Parameter modifier:<input id="txtParameterModifier" type="text" size="3" value="out" />
+&nbsp; <input type="button" title="Clear source(清空源文本框)" value="Clear source" onclick="clearSource();" />
 <br />
 <input type="checkbox" id="chkApplyComment" name="chkApplyComment" value="1" checked />Apply to document comment
 &nbsp; <input type="checkbox" id="chkApplyCommentClass" name="chkApplyCommentClass" value="1" checked />Class filter:<input id="txtApplyCommentClass" type="text" size="20" value="I.*" />
@@ -47,7 +48,29 @@
 
 <script type="text/javascript">
 const clipboardObj = navigator.clipboard;
-var reduceExclude = "";
+var reduceExclude = ""; // TODO: remove.
+var m_TypeIndex = 0;
+var m_ParameterModifier = "";
+var m_ApplyComment = false;
+var m_ApplyCommentClass = "";
+var m_ApplyCode = false;
+
+function loadConfig() {
+	try {
+		const chkParameterModifier = document.getElementById('chkParameterModifier');
+		const chkApplyComment = document.getElementById('chkApplyComment');
+		const chkApplyCode = document.getElementById('chkApplyCode');
+		m_TypeIndex = parseInt(document.getElementById('txtTypeIndex').value)||0;
+		m_ParameterModifier = "";
+		if (chkParameterModifier.checked) m_ParameterModifier=document.getElementById('txtParameterModifier').value.trim() || "";
+		m_ApplyComment = chkApplyComment.checked;
+		m_ApplyCommentClass = "";
+		if (m_ApplyComment) m_ApplyCommentClass = document.getElementById('txtApplyCommentClass').value.trim();
+		m_ApplyCode = chkApplyCode.checked;
+	} catch(ex) {
+		console.log("Run loadConfig fail!", ex);
+	}
+}
 
 function onCheck_MethodUppercasePrefix(s, last, userobj) {
 	var rt = false;
@@ -186,12 +209,48 @@ function pasteAndRun(callback) {
 }
 
 function doPasteDo() {
-	doPasteDo(doReduce);
+	pasteAndRun(doReduce);
 }
 
 function clearSource() {
 	const txtS = document.getElementById('txtS');
 	txtS.value = "";
+}
+
+function doAddParameter() {
+	const txtS = document.getElementById('txtS');
+	const txtD = document.getElementById('txtD');
+	var i;
+	try {
+		loadConfig();
+		var parameterNames = document.getElementById('txtNames').value.trim() || "";
+		if (parameterNames.length<=0) {
+			throw new Error('`Parameter names` can not be empty!');
+		}
+		var nameList = [parameterNames];
+		if (parameterNames.indexOf(",")>=0) {
+			nameList = parameterNames.split(",");
+			for(i=0; i<=nameList.length; ++i) {
+				nameList[i] = ("" + nameList[i]).trim();
+			}
+		}
+		// do.
+		var lines = txtS.value.split("\n");
+		var lines2 = doAddParameter_Core(lines, nameList);
+		var dst = lines2.join("\n");
+		txtD.value = dst;
+	} catch(ex) {
+		console.log("Run loadConfig fail!", ex);
+		txtD.value = ex;
+	}
+}
+
+function doAddParameter_Core(lines, nameList) {
+	return lines;
+}
+
+function doAddParameterPaste() {
+	pasteAndRun(doAddParameter);
 }
 
 /** 初始化. */
