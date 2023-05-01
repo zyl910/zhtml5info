@@ -286,21 +286,24 @@ function doAddParameter_Core(lines, nameList) {
 			var src = line;
 			var srcStart = 0;
 			var srcLength = line.length;
+			var isComment = false;
 			var indexComment = line.indexOf("///");
 			if (indexComment>=0) {
+				isComment = true;
+				srcStart = indexComment + 3;
 				if (m_ApplyComment) {
 				}
 			} else {
-				var n = line.indexOf("//");
-				if (n>=0) {
-					srcLength = n;
-					src = line.substring(0, srcLength);
-				}
-				if (srcLength>0) {
-					var bracketInfo = findBracket(src);
-					console.log("Line["+i+"]: ", bracketInfo);
-					if (null!=bracketInfo) {
-					}
+			}
+			var n = line.indexOf("//", srcStart);
+			if (n>=0) {
+				srcLength = n - srcStart;
+				src = line.substr(srcStart, srcLength);
+			}
+			if (srcLength>0) {
+				var bracketInfo = findBracket(src, srcStart);
+				console.log("Line["+i+"]: ", bracketInfo);
+				if (null!=bracketInfo) {
 				}
 			}
 		}
