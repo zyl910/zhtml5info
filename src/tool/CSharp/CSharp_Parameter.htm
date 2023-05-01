@@ -284,6 +284,7 @@ function doAddParameter_Core(lines, nameList) {
 		var dst = line;
 		if (typeof(line)=="string" && (line.length>0)) {
 			var src = line;
+			var srcTrim;
 			var srcStart = 0;
 			var srcLength = line.length;
 			var isComment = false;
@@ -298,9 +299,11 @@ function doAddParameter_Core(lines, nameList) {
 			var n = line.indexOf("//", srcStart);
 			if (n>=0) {
 				srcLength = n - srcStart;
-				src = line.substr(srcStart, srcLength);
+				src = line.substr(0, n);
 			}
-			if (srcLength>0) {
+			var temp = line.substr(srcStart, srcLength).trim();
+			var flag = (srcLength>0) && (!temp.startsWith("["));
+			if (flag) {
 				var bracketInfo = findBracket(src, srcStart);
 				console.log("Line["+i+"]: ", bracketInfo);
 				if (null!=bracketInfo) {
