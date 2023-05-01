@@ -23,7 +23,9 @@
 &nbsp; <input type="button" title="Clear source(清空源文本框)" value="Clear source" onclick="clearSource();" />
 <br />
 <input type="checkbox" id="chkApplyComment" name="chkApplyComment" value="1" checked />Apply to document comment
-&nbsp; <input type="checkbox" id="chkApplyCommentClass" name="chkApplyCommentClass" value="1" checked />Class filter:<input id="txtApplyCommentClass" type="text" size="20" value="I.*" />
+<span style="display:none">
+	&nbsp; <input type="checkbox" id="chkApplyCommentClass" name="chkApplyCommentClass" value="1" checked />Class filter:<input id="txtApplyCommentClass" type="text" size="20" value="I.*" />
+</span>
 &nbsp; <input type="checkbox" id="chkApplyCode" name="chkApplyCode" value="1" checked />Apply to body code
 <br />
 <input type="button" title="Add parameter(增加参数)" value="Add parameter" onclick="doAddParameter();" />
@@ -55,6 +57,21 @@ var m_ApplyComment = false;
 var m_ApplyCommentClass = "";
 var m_ApplyCode = false;
 
+/** @class BracketInfo
+ * Bracket info (括号信息).
+ */
+function BracketInfo(config) {
+	config = config || {};
+	this.start = config.start || 0;
+	this.len = config.len || 0;
+	this.parameterCount = config.parameterCount || 0;
+	this.parameterStarts = config.parameterStarts || [];
+	this.parameterLens = config.parameterLens || [];
+	this.parameterTexts = config.parameterTexts || [];
+}
+
+/** Load config
+ */
 function loadConfig() {
 	try {
 		const chkParameterModifier = document.getElementById('chkParameterModifier');
@@ -188,6 +205,10 @@ function doReduce() {
 	txtD.value = dst;
 }
 
+/** Paste and run.
+ *
+ * @param {Function}	callback	On check callback. Prototype: `function()` .
+ */
 function pasteAndRun(callback) {
 	const txtS = document.getElementById('txtS');
 	//const txtD = document.getElementById('txtD');
@@ -212,11 +233,15 @@ function doPasteDo() {
 	pasteAndRun(doReduce);
 }
 
+/** Clear source textbox.
+ */
 function clearSource() {
 	const txtS = document.getElementById('txtS');
 	txtS.value = "";
 }
 
+/** do AddParameter.
+ */
 function doAddParameter() {
 	const txtS = document.getElementById('txtS');
 	const txtD = document.getElementById('txtD');
@@ -245,8 +270,135 @@ function doAddParameter() {
 	}
 }
 
+/** Do AddParameter - Core.
+ *
+ * @param {String[]}	lines	Source lines.
+ * @param {String[]}	nameList	Parameter name list.
+ * @return {String[]}	Return destination lines.
+ */
 function doAddParameter_Core(lines, nameList) {
-	return lines;
+	var rt = [];
+	var nameListCount = nameList.length;
+	for(i=0; i<lines.length; ++i) {
+		var line = lines[i];
+		var dst = line;
+		if (typeof(line)=="string" && (line.length>0)) {
+			var src = line;
+			var srcStart = 0;
+			var srcLength = line.length;
+			var indexComment = line.indexOf("///");
+			if (indexComment>=0) {
+				if (m_ApplyComment) {
+				}
+			} else {
+				var n = line.indexOf("//");
+				if (n>=0) {
+					srcLength = n;
+					src = line.substring(0, srcLength);
+				}
+				if (srcLength>0) {
+					var bracketInfo = findBracket(src);
+					console.log("Line["+i+"]: ", bracketInfo);
+					if (null!=bracketInfo) {
+					}
+				}
+			}
+		}
+		// done.
+		rt.push(dst);
+	}
+	return rt;
+}
+
+/** Find main bracket.
+ *
+ * @param {String}	src	Source text.
+ * @param {Number}	startIndex	(optional) The start index.
+ * @return {BracketInfo}	Return bracket info. Return null if not found.
+ */
+function findBracket(src, startIndex) {
+	var list = findAllTopBracket(src, startIndex);
+	if (null==list || (list.length<=0)) return null;
+	return list[list.length-1];
+}
+
+/** Find all top bracket.
+ *
+ * @param {String}	src	Source text.
+ * @param {Number}	startIndex	(optional) The start index.
+ * @return {BracketInfo[]}	Return bracket info.
+ */
+function findAllTopBracket(src, startIndex) {
+	var rt = [];
+	startIndex = startIndex || 0;
+	if (src.length<startIndex) return rt;
+	var expressionBlank = /\s+/g;
+	var curBracket = null;
+	var bracketDeep = 0;
+	var parameterUsed = false;
+	var parameterCurUsed = false;
+	var parameterCurStart = 0;
+	var parameterCurEnd = 0;
+	var i;
+	for(i=startIndex; i<src.length; ++i) {
+		var ch = src.charAt(i);
+		if ("("==ch) {
+			++bracketDeep;
+			if (1==bracketDeep) {
+				curBracket = new BracketInfo();
+				curBracket.start = i;
+				parameterUsed = false;
+				parameterCurUsed = false;
+				parameterCurStart = i+1;
+				parameterCurEnd = parameterCurStart;
+			}
+		} else if (")"==ch) {
+			--bracketDeep;
+			if (0==bracketDeep && (null!=curBracket)) {
+				curBracket.len = i - curBracket.start + 1;
+				if (parameterUsed) {
+					var parameterLen = parameterCurEnd - parameterCurStart;
+					curBracket.parameterStarts.push(parameterCurStart);
+					curBracket.parameterLens.push(parameterLen);
+					curBracket.parameterTexts.push(src.substring(parameterCurStart, parameterCurEnd));
+					curBracket.parameterCount++;
+				}
+				rt.push(curBracket);
+				curBracket = null;
+			}
+		} else if (","==ch) {
+			if (bracketDeep>0) {
+				parameterUsed = true;
+				var parameterLen = parameterCurEnd - parameterCurStart;
+				curBracket.parameterStarts.push(parameterCurStart);
+				curBracket.parameterLens.push(parameterLen);
+				curBracket.parameterTexts.push(src.substring(parameterCurStart, parameterCurEnd));
+				curBracket.parameterCount++;
+				// Next parameter.
+				parameterCurUsed = false;
+				parameterCurStart = i+1;
+				parameterCurEnd = parameterCurStart;
+			}
+		} else if (expressionBlank.test(ch)) {
+			// Blank char.
+			if (bracketDeep>0) {
+				if (parameterCurUsed) {
+				} else {
+				}
+			}
+		} else {
+			// NonBlank char.
+			if (bracketDeep>0) {
+				parameterUsed = true;
+				if(!parameterCurUsed) {
+					parameterCurUsed = true;
+					parameterCurStart = i;
+				}
+				parameterCurEnd = i+1;
+			}
+		}
+	}
+	return rt;
 }
 
 function doAddParameterPaste() {
