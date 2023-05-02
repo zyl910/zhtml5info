@@ -312,7 +312,7 @@ function doAddParameter_Core(lines, nameList) {
 			n = line.indexOf("//", srcStart);
 			if (n>=0) {
 				srcLength = n - srcStart;
-				src = line.substr(0, n);l
+				src = line.substr(0, n);
 			}
 			var temp = line.substr(srcStart, srcLength).trim();
 			var needDo = (srcLength>0) && (!temp.startsWith("["));
