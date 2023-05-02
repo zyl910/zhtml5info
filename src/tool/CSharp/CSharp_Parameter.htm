@@ -308,6 +308,9 @@ function doAddParameter_Core(lines, nameList) {
 			var temp = line.substr(srcStart, srcLength).trim();
 			var needDo = (srcLength>0) && (!temp.startsWith("["));
 			if (needDo) {
+				if (!m_ApplyComment) needDo=false;
+			}
+			if (needDo) {
 				var bracketInfo = findBracket(line, srcStart, srcLength);
 				console.log("Line["+i+"]: ", bracketInfo);
 				if (null!=bracketInfo && bracketInfo.parameterCount>m_TypeIndex) {
