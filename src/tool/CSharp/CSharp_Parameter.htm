@@ -8,22 +8,12 @@
 <h1>CSharp_Parameter (C#参数工具)</h1>
 <p>用于批量增加或移除参数.</p>
 
-<span style="display:none">
-<input type="button" title="Do(执行精简)" value="Do" onclick="doReduce();" />
-&nbsp; Mode: <select id="cboMode"">
-		<option value="0">Normal</option>
-		<option value="1" selected="selected">MethodUppercasePrefix</option>
-	</select>
-&nbsp;<input type="checkbox" id="chkExclude" name="chkExclude" value="1" />Exclude <input id="txtExclude" type="text" size="20" value="(继承自" />
-&nbsp; <input type="button" title="PasteDo(粘贴并执行)" value="PasteDo" onclick="doPasteDo();" />
-</span>
-<br />
 <span title="参数类型来源于源参数列表的第几项?">Parameter type by index</span> <input id="txtTypeIndex" type="text" size="3" value="0" />
 &nbsp; <input type="checkbox" id="chkParameterModifier" name="chkParameterModifier" value="1" />Parameter modifier:<input id="txtParameterModifier" type="text" size="3" value="out" />
 &nbsp; <input type="button" title="Clear source(清空源文本框)" value="Clear source" onclick="clearSource();" />
 <br />
 <input type="checkbox" id="chkApplyComment" name="chkApplyComment" value="1" checked />Apply to document comment
-<span style="display:none">
+<span style="display:inline">
 	&nbsp; <input type="checkbox" id="chkApplyCommentClass" name="chkApplyCommentClass" value="1" checked />Class filter:<input id="txtApplyCommentClass" type="text" size="20" value="I.*" />
 </span>
 &nbsp; <input type="checkbox" id="chkApplyCode" name="chkApplyCode" value="1" checked />Apply to body code
@@ -40,10 +30,12 @@
 <br />
 <div>
 	<div style="display:inline-block; width:45%">
+		Source:<br>
 		<textarea id="txtS" rows="30" style="width: 100%"></textarea>
 	</div>
 	&nbsp; &nbsp; 
 	<div style="display:inline-block; width:45%">
+		Destination:<br>
 		<textarea id="txtD" rows="30" style="width: 100%"></textarea>
 	</div>
 </div>
@@ -89,120 +81,11 @@ function loadConfig() {
 	}
 }
 
-function onCheck_MethodUppercasePrefix(s, last, userobj) {
-	var rt = false;
-	if (s.length>0) {
-		// Check need join.
-		var s1 = s.trimLeft();
-		var ch = s1.charAt(0);
-		var p = s1.indexOf("(");
-		var isFirst = ('A'<=ch)&&(ch<='Z')&&(p>0);
-		if (isFirst) {
-			var fname = s1.substring(0, p);
-			//var fname1 = fname.replace(/(^s*)|(s*$)/g, "");
-			var fname1 = fname.replace(/\s+/g,"");
-			if (fname.length !== fname1.length) {
-				isFirst = false;
-			}
-			if (fname.indexOf(",")>=0) {
-				isFirst = false;
-			}
-		}
-		rt = !isFirst;
-	} else {
-		// Check ignore line.
-		if (reduceExclude.length>0) {
-			if (last.indexOf(reduceExclude)>=0) {
-				rt = true;
-			}
-		}
-	}
-	return rt;
-}
-
-/** Reduce empty line - Ex.
- *
- * @param {String[]}	lines	Source lines.
- * @param {Function}	(optional) onCheck	On check callback. Prototype: `function(s, last, userobj)` . s 非空时用于判断是否应合并为一行, s为空时判断是否忽略该行.
- * @param {String}	(optional) separatorJoin	The separator by join.
- * @param {Object}	(optional) userobj	The userobj.
- * @return {String[]}	Return lines.
+/** Clear source textbox.
  */
-function reduceEmptyLineEx(lines, onCheck, separatorJoin, userobj) {
-	var rt = [];
-	var separatorOnMutil = "; ";
-	var last = "";
-	var i;
-	//console.log(lines);
-	separatorJoin = separatorJoin || "";
-	for(i=0; i<lines.length; ++i) {
-		var s = lines[i];
-		//var isEmpty = s.replace(/(^s*)|(s*$)/g, "").length ==0;
-		var isEmpty = s.replace(/\s+/g,"").length ==0;
-		if (!isEmpty) {
-			var needJoin = false;
-			if (!!onCheck) needJoin = onCheck(s, last, userobj);
-			if (needJoin) {
-				var separatorNeed = false;
-				if (last.length>0) {
-					ch = last.charAt(last.length-1);
-					var charEmpty = (" "==ch) || ("\t"==ch);
-					separatorNeed = !charEmpty;
-				}
-				if (separatorNeed) {
-					last += separatorOnMutil + s;
-				} else {
-					last += s;
-				}
-			} else {
-				// append.
-				if (last.length>0) {
-					var ignoreLine = false;
-					if (!!onCheck) ignoreLine = onCheck("", last, userobj);
-					if (!ignoreLine) {
-						rt.push(last);
-					}
-				}
-				// update.
-				last = s;
-			}
-		}
-	}
-	// done.
-	if (last.length>0) {
-		// append.
-		var ignoreLine = false;
-		if (!!onCheck) ignoreLine = onCheck("", last, userobj);
-		if (!ignoreLine) {
-			rt.push(last);
-		}
-	}
-	return rt;
-}
-
-function reduceEmptyLine(lines, mode) {
-	var rt = [];
-	var onCheck = null;
-	var separatorJoin = "; ";
-	var userobj = null;
-	if (1==mode) onCheck=onCheck_MethodUppercasePrefix;
-	rt = reduceEmptyLineEx(lines, onCheck, separatorJoin, userobj);
-	return rt;
-}
-
-function doReduce() {
-	const cboMode = document.getElementById('cboMode');
-	const chkExclude = document.getElementById('chkExclude');
-	const txtExclude = document.getElementById('txtExclude');
+function clearSource() {
 	const txtS = document.getElementById('txtS');
-	const txtD = document.getElementById('txtD');
-	var mode = cboMode.selectedIndex;
-	reduceExclude = "";
-	if (chkExclude.checked) reduceExclude=txtExclude.value;
-	var lines = txtS.value.split("\n");
-	var lines2 = reduceEmptyLine(lines, mode);
-	var dst = lines2.join("\n");
-	txtD.value = dst;
+	txtS.value = "";
 }
 
 /** Paste and run.
@@ -229,15 +112,111 @@ function pasteAndRun(callback) {
 	}
 }
 
-function doPasteDo() {
-	pasteAndRun(doReduce);
+/** Find main bracket.
+ *
+ * @param {String}	src	Source text.
+ * @param {Number}	startIndex	(optional) The start index of source.
+ * @param {Number}	len	(optional) The length of source.
+ * @return {BracketInfo}	Return bracket info. Return null if not found.
+ */
+function findBracket(src, startIndex, len) {
+	var list = findAllTopBracket(src, startIndex, len);
+	if (null==list || (list.length<=0)) return null;
+	return list[list.length-1];
 }
 
-/** Clear source textbox.
+/** Find all top bracket.
+ *
+ * @param {String}	src	Source text.
+ * @param {Number}	startIndex	(optional) The start index of source.
+ * @param {Number}	len	(optional) The length of source.
+ * @return {BracketInfo[]}	Return bracket info.
  */
-function clearSource() {
-	const txtS = document.getElementById('txtS');
-	txtS.value = "";
+function findAllTopBracket(src, startIndex, len) {
+	var rt = [];
+	startIndex = startIndex || 0;
+	if (src.length<startIndex) return rt;
+	if (typeof(len)!="number") len = -1;
+	var endIndex = src.length;
+	if (len<0) {
+		// endIndex = src.length;
+	} else if (len<1) {
+		return rt;
+	} else {
+		endIndex = startIndex + len;
+		if (endIndex>src.length) endIndex=src.length;
+	}
+	var expressionBlank = /\s+/g;
+	var curBracket = null;
+	var bracketDeep = 0;
+	var parameterUsed = false;
+	var parameterCurUsed = false;
+	var parameterCurStart = 0;
+	var parameterCurEnd = 0;
+	var i;
+	for(i=startIndex; i<endIndex; ++i) {
+		var ch = src.charAt(i);
+		if ("("==ch) {
+			++bracketDeep;
+			if (1==bracketDeep) {
+				curBracket = new BracketInfo();
+				curBracket.start = i;
+				parameterUsed = false;
+				parameterCurUsed = false;
+				parameterCurStart = i+1;
+				parameterCurEnd = parameterCurStart;
+			}
+		} else if (")"==ch) {
+			--bracketDeep;
+			if (0==bracketDeep && (null!=curBracket)) {
+				curBracket.len = i - curBracket.start + 1;
+				if (parameterUsed) {
+					var parameterLen = parameterCurEnd - parameterCurStart;
+					curBracket.parameterStarts.push(parameterCurStart);
+					curBracket.parameterLens.push(parameterLen);
+					curBracket.parameterTexts.push(src.substring(parameterCurStart, parameterCurEnd));
+					curBracket.parameterCount++;
+				}
+				rt.push(curBracket);
+				curBracket = null;
+			}
+		} else if (","==ch) {
+			if (bracketDeep>0) {
+				parameterUsed = true;
+				var parameterLen = parameterCurEnd - parameterCurStart;
+				curBracket.parameterStarts.push(parameterCurStart);
+				curBracket.parameterLens.push(parameterLen);
+				curBracket.parameterTexts.push(src.substring(parameterCurStart, parameterCurEnd));
+				curBracket.parameterCount++;
+				// Next parameter.
+				parameterCurUsed = false;
+				parameterCurStart = i+1;
+				parameterCurEnd = parameterCurStart;
+			}
+		} else if (expressionBlank.test(ch)) {
+			// Blank char.
+			if (bracketDeep>0) {
+				if (parameterCurUsed) {
+				} else {
+				}
+			}
+		} else {
+			// NonBlank char.
+			if (bracketDeep>0) {
+				parameterUsed = true;
+				if(!parameterCurUsed) {
+					parameterCurUsed = true;
+					parameterCurStart = i;
+				}
+				parameterCurEnd = i+1;
+			}
+		}
+	}
+	return rt;
+}
+
+function doAddParameterPaste() {
+	pasteAndRun(doAddParameter);
 }
 
 /** do AddParameter.
@@ -352,111 +331,14 @@ function doAddParameter_Core(lines, nameList) {
 	return rt;
 }
 
-/** Find main bracket.
- *
- * @param {String}	src	Source text.
- * @param {Number}	startIndex	(optional) The start index of source.
- * @param {Number}	len	(optional) The length of source.
- * @return {BracketInfo}	Return bracket info. Return null if not found.
- */
-function findBracket(src, startIndex, len) {
-	var list = findAllTopBracket(src, startIndex, len);
-	if (null==list || (list.length<=0)) return null;
-	return list[list.length-1];
+function doRemoveParameterPaste() {
+	pasteAndRun(doRemoveParameter);
 }
 
-/** Find all top bracket.
- *
- * @param {String}	src	Source text.
- * @param {Number}	startIndex	(optional) The start index of source.
- * @param {Number}	len	(optional) The length of source.
- * @return {BracketInfo[]}	Return bracket info.
+/** do RemoveParameter.
  */
-function findAllTopBracket(src, startIndex, len) {
-	var rt = [];
-	startIndex = startIndex || 0;
-	if (src.length<startIndex) return rt;
-	if (typeof(len)!="number") len = -1;
-	var endIndex = src.length;
-	if (len<0) {
-		// endIndex = src.length;
-	} else if (len<1) {
-		return rt;
-	} else {
-		endIndex = startIndex + len;
-		if (endIndex>src.length) endIndex=src.length;
-	}
-	var expressionBlank = /\s+/g;
-	var curBracket = null;
-	var bracketDeep = 0;
-	var parameterUsed = false;
-	var parameterCurUsed = false;
-	var parameterCurStart = 0;
-	var parameterCurEnd = 0;
-	var i;
-	for(i=startIndex; i<endIndex; ++i) {
-		var ch = src.charAt(i);
-		if ("("==ch) {
-			++bracketDeep;
-			if (1==bracketDeep) {
-				curBracket = new BracketInfo();
-				curBracket.start = i;
-				parameterUsed = false;
-				parameterCurUsed = false;
-				parameterCurStart = i+1;
-				parameterCurEnd = parameterCurStart;
-			}
-		} else if (")"==ch) {
-			--bracketDeep;
-			if (0==bracketDeep && (null!=curBracket)) {
-				curBracket.len = i - curBracket.start + 1;
-				if (parameterUsed) {
-					var parameterLen = parameterCurEnd - parameterCurStart;
-					curBracket.parameterStarts.push(parameterCurStart);
-					curBracket.parameterLens.push(parameterLen);
-					curBracket.parameterTexts.push(src.substring(parameterCurStart, parameterCurEnd));
-					curBracket.parameterCount++;
-				}
-				rt.push(curBracket);
-				curBracket = null;
-			}
-		} else if (","==ch) {
-			if (bracketDeep>0) {
-				parameterUsed = true;
-				var parameterLen = parameterCurEnd - parameterCurStart;
-				curBracket.parameterStarts.push(parameterCurStart);
-				curBracket.parameterLens.push(parameterLen);
-				curBracket.parameterTexts.push(src.substring(parameterCurStart, parameterCurEnd));
-				curBracket.parameterCount++;
-				// Next parameter.
-				parameterCurUsed = false;
-				parameterCurStart = i+1;
-				parameterCurEnd = parameterCurStart;
-			}
-		} else if (expressionBlank.test(ch)) {
-			// Blank char.
-			if (bracketDeep>0) {
-				if (parameterCurUsed) {
-				} else {
-				}
-			}
-		} else {
-			// NonBlank char.
-			if (bracketDeep>0) {
-				parameterUsed = true;
-				if(!parameterCurUsed) {
-					parameterCurUsed = true;
-					parameterCurStart = i;
-				}
-				parameterCurEnd = i+1;
-			}
-		}
-	}
-	return rt;
-}
-
-function doAddParameterPaste() {
-	pasteAndRun(doAddParameter);
+function doRemoveParameter() {
+	throw new Error("RemoveParameter is under construction.");
 }
 
 /** 初始化. */
