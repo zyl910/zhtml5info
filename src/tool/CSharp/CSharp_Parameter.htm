@@ -265,6 +265,11 @@ function doAddParameter_Core(lines, nameList) {
 	if (nameListCount<=0) {
 		throw new Error("The `nameList.length`("+nameListCount+") must >0 !");
 	}
+	var regExpApplyCommentClass = null;
+	if (m_ApplyCommentClass.length>0) {
+		regExpApplyCommentClass = new RegExp(m_ApplyCommentClass);
+	}
+	var n;
 	var i, j;
 	for(i=0; i<lines.length; ++i) {
 		var line = lines[i];
@@ -279,11 +284,9 @@ function doAddParameter_Core(lines, nameList) {
 			if (indexComment>=0) {
 				isComment = true;
 				srcStart = indexComment + 3;
-				if (m_ApplyComment) {
-				}
 			} else {
 			}
-			var n = line.indexOf("//", srcStart);
+			n = line.indexOf("//", srcStart);
 			if (n>=0) {
 				srcLength = n - srcStart;
 				src = line.substr(0, n);l
@@ -292,6 +295,47 @@ function doAddParameter_Core(lines, nameList) {
 			var needDo = (srcLength>0) && (!temp.startsWith("["));
 			if (needDo) {
 				if (!m_ApplyComment) needDo=false;
+			}
+			if (needDo && isComment) {
+				// check cref.
+				n = line.indexOf(" cref", srcStart);
+				if (n>0 && n<(srcStart+srcLength)) {
+					srcStart = n + 4;
+					// First `"`
+					n = line.indexOf("\"", srcStart);
+					if (n>0 && n<(srcStart+srcLength)) {
+						srcStart = n + 1;
+						// Second `"`
+						n = line.indexOf("\"", srcStart);
+						if (n>0 && n<(srcStart+srcLength)) {
+							srcLength = n - srcStart;
+							temp = line.substr(srcStart, srcLength);
+							console.log("Line["+i+"] cref: ", temp);
+							// The method full name.
+							n = line.indexOf("(", srcStart);
+							if (n>0 && n<(srcStart+srcLength)) {
+								temp = line.substr(srcStart, n - srcStart);
+								n = temp.indexOf(".");
+								if (n>=0) {
+									var nameClass = temp.substring(0, n).trim();
+									if (null!=regExpApplyCommentClass) {
+										needDo = regExpApplyCommentClass.test(nameClass);
+									}
+								} else {
+									// No class name. Allow do.
+								}
+							} else {
+								needDo = false;
+							}
+						} else {
+							needDo = false;
+						}
+					} else {
+						needDo = false;
+					}
+				} else {
+					needDo = false;
+				}
 			}
 			if (needDo) {
 				var bracketInfo = findBracket(line, srcStart, srcLength);
