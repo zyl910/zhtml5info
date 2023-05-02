@@ -29,7 +29,7 @@
 &nbsp; <input type="checkbox" id="chkApplyCode" name="chkApplyCode" value="1" checked />Apply to body code
 <br />
 <input type="button" title="Add parameter(增加参数)" value="Add parameter" onclick="doAddParameter();" />
-&nbsp; Parameter names <input id="txtNames" type="text" size="24" value="args0" />
+&nbsp; Parameter names <input id="txtNames" type="text" size="24" value="args1, args2" />
 &nbsp; <input type="button" title="Paste do - Add parameter(粘贴并执行)" value="Paste do" onclick="doAddParameterPaste();" />
 <br />
 <input type="button" title="Remove parameter(移除参数)" value="Remove parameter" onclick="doRemoveParameter();" />
@@ -255,7 +255,7 @@ function doAddParameter() {
 		var nameList = [parameterNames];
 		if (parameterNames.indexOf(",")>=0) {
 			nameList = parameterNames.split(",");
-			for(i=0; i<=nameList.length; ++i) {
+			for(i=0; i<nameList.length; ++i) {
 				nameList[i] = ("" + nameList[i]).trim();
 			}
 		}
@@ -265,7 +265,7 @@ function doAddParameter() {
 		var dst = lines2.join("\n");
 		txtD.value = dst;
 	} catch(ex) {
-		console.log("Run loadConfig fail!", ex);
+		console.log("Run AddParameter fail!", ex);
 		txtD.value = ex;
 	}
 }
@@ -279,6 +279,10 @@ function doAddParameter() {
 function doAddParameter_Core(lines, nameList) {
 	var rt = [];
 	var nameListCount = nameList.length;
+	if (nameListCount<=0) {
+		throw new Error("The `nameList.length`("+nameListCount+") must >0 !");
+	}
+	var i, j;
 	for(i=0; i<lines.length; ++i) {
 		var line = lines[i];
 		var dst = line;
@@ -299,14 +303,43 @@ function doAddParameter_Core(lines, nameList) {
 			var n = line.indexOf("//", srcStart);
 			if (n>=0) {
 				srcLength = n - srcStart;
-				src = line.substr(0, n);
+				src = line.substr(0, n);l
 			}
 			var temp = line.substr(srcStart, srcLength).trim();
-			var flag = (srcLength>0) && (!temp.startsWith("["));
-			if (flag) {
-				var bracketInfo = findBracket(src, srcStart);
+			var needDo = (srcLength>0) && (!temp.startsWith("["));
+			if (needDo) {
+				var bracketInfo = findBracket(line, srcStart, srcLength);
 				console.log("Line["+i+"]: ", bracketInfo);
-				if (null!=bracketInfo) {
+				if (null!=bracketInfo && bracketInfo.parameterCount>m_TypeIndex) {
+					var parameterTextSrc = bracketInfo.parameterTexts[m_TypeIndex];
+					var parameterType = "";
+					var isCodeBody = false;
+					if (!isComment) {
+						n = parameterTextSrc.lastIndexOf(" ");
+						if (n>=0) {
+							parameterType = parameterTextSrc.substring(0, n);
+						} else {
+							isCodeBody = true;
+							needDo = m_ApplyCode;
+						}
+					}
+					if (needDo) {
+						var insertText = "";
+						for(j=0; j<nameList.length; ++j) {
+							var parameterTextDst = parameterTextSrc;
+							if (parameterType.length>0) {
+								parameterTextDst = parameterType + " " + nameList[j];
+							} else if (isCodeBody) {
+								parameterTextDst = nameList[j];
+							}
+							if (m_ParameterModifier.length>0) {
+								parameterTextDst = m_ParameterModifier + " " + parameterTextDst;
+							}
+							insertText += ", " + parameterTextDst;
+						}
+						n = bracketInfo.start + bracketInfo.len - 1;
+						dst = line.substring(0, n) + insertText + line.substring(n);
+					}
 				}
 			}
 		}
@@ -319,11 +352,12 @@ function doAddParameter_Core(lines, nameList) {
 /** Find main bracket.
  *
  * @param {String}	src	Source text.
- * @param {Number}	startIndex	(optional) The start index.
+ * @param {Number}	startIndex	(optional) The start index of source.
+ * @param {Number}	len	(optional) The length of source.
  * @return {BracketInfo}	Return bracket info. Return null if not found.
  */
-function findBracket(src, startIndex) {
-	var list = findAllTopBracket(src, startIndex);
+function findBracket(src, startIndex, len) {
+	var list = findAllTopBracket(src, startIndex, len);
 	if (null==list || (list.length<=0)) return null;
 	return list[list.length-1];
 }
@@ -331,13 +365,24 @@ function findBracket(src, startIndex) {
 /** Find all top bracket.
  *
  * @param {String}	src	Source text.
- * @param {Number}	startIndex	(optional) The start index.
+ * @param {Number}	startIndex	(optional) The start index of source.
+ * @param {Number}	len	(optional) The length of source.
  * @return {BracketInfo[]}	Return bracket info.
  */
-function findAllTopBracket(src, startIndex) {
+function findAllTopBracket(src, startIndex, len) {
 	var rt = [];
 	startIndex = startIndex || 0;
 	if (src.length<startIndex) return rt;
+	if (typeof(len)!="number") len = -1;
+	var endIndex = src.length;
+	if (len<0) {
+		// endIndex = src.length;
+	} else if (len<1) {
+		return rt;
+	} else {
+		endIndex = startIndex + len;
+		if (endIndex>src.length) endIndex=src.length;
+	}
 	var expressionBlank = /\s+/g;
 	var curBracket = null;
 	var bracketDeep = 0;
@@ -346,7 +391,7 @@ function findAllTopBracket(src, startIndex) {
 	var parameterCurStart = 0;
 	var parameterCurEnd = 0;
 	var i;
-	for(i=startIndex; i<src.length; ++i) {
+	for(i=startIndex; i<endIndex; ++i) {
 		var ch = src.charAt(i);
 		if ("("==ch) {
 			++bracketDeep;
