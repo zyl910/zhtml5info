@@ -23,7 +23,7 @@
 &nbsp; <input type="button" title="Paste do - Add parameter(粘贴并执行)" value="Paste do" onclick="doAddParameterPaste();" />
 <br />
 <input type="button" title="Remove parameter(移除参数)" value="Remove parameter" onclick="doRemoveParameter();" />
-&nbsp; Remove index <input id="txtRemoveIndex" type="text" size="3" value="-1" />
+&nbsp; Parameter index <input id="txtParameterIndex" type="text" size="3" value="-1" />
 &nbsp; (-1表示倒数第1项)
 &nbsp; <input type="button" title="Paste do - Remove parameter(粘贴并执行)" value="Paste do" onclick="doRemoveParameterPaste();" />
 <br />
@@ -42,9 +42,9 @@
 
 <script type="text/javascript">
 const clipboardObj = navigator.clipboard;
-var reduceExclude = ""; // TODO: remove.
 var m_TypeIndex = 0;
 var m_ParameterModifier = "";
+var m_ParameterIndex = -1;
 var m_ApplyComment = false;
 var m_ApplyCommentClass = "";
 var m_ApplyCode = false;
@@ -57,6 +57,7 @@ function BracketInfo(config) {
 	this.start = config.start || 0;
 	this.len = config.len || 0;
 	this.parameterCount = config.parameterCount || 0;
+	this.parameterBorders = config.parameterBorders || []; // `)` or `,`
 	this.parameterStarts = config.parameterStarts || [];
 	this.parameterLens = config.parameterLens || [];
 	this.parameterTexts = config.parameterTexts || [];
@@ -72,6 +73,7 @@ function loadConfig() {
 		m_TypeIndex = parseInt(document.getElementById('txtTypeIndex').value)||0;
 		m_ParameterModifier = "";
 		if (chkParameterModifier.checked) m_ParameterModifier=document.getElementById('txtParameterModifier').value.trim() || "";
+		m_ParameterIndex = parseInt(document.getElementById('txtParameterIndex').value)||0;
 		m_ApplyComment = chkApplyComment.checked;
 		m_ApplyCommentClass = "";
 		if (m_ApplyComment) m_ApplyCommentClass = document.getElementById('txtApplyCommentClass').value.trim();
@@ -172,6 +174,7 @@ function findAllTopBracket(src, startIndex, len) {
 				curBracket.len = i - curBracket.start + 1;
 				if (parameterUsed) {
 					var parameterLen = parameterCurEnd - parameterCurStart;
+					curBracket.parameterBorders.push(i);
 					curBracket.parameterStarts.push(parameterCurStart);
 					curBracket.parameterLens.push(parameterLen);
 					curBracket.parameterTexts.push(src.substring(parameterCurStart, parameterCurEnd));
@@ -184,6 +187,7 @@ function findAllTopBracket(src, startIndex, len) {
 			if (bracketDeep>0) {
 				parameterUsed = true;
 				var parameterLen = parameterCurEnd - parameterCurStart;
+				curBracket.parameterBorders.push(i);
 				curBracket.parameterStarts.push(parameterCurStart);
 				curBracket.parameterLens.push(parameterLen);
 				curBracket.parameterTexts.push(src.substring(parameterCurStart, parameterCurEnd));
@@ -292,7 +296,9 @@ function doAddParameter_Core(lines, nameList) {
 			if (needDo) {
 				var bracketInfo = findBracket(line, srcStart, srcLength);
 				console.log("Line["+i+"]: ", bracketInfo);
-				if (null!=bracketInfo && bracketInfo.parameterCount>m_TypeIndex) {
+				var curParameterIndex = m_ParameterIndex;
+				if (null!=bracketInfo && bracketInfo.parameterCount>m_TypeIndex && bracketInfo.parameterCount>=curParameterIndex) {
+					if (curParameterIndex<0) curParameterIndex=bracketInfo.parameterCount;
 					var parameterTextSrc = bracketInfo.parameterTexts[m_TypeIndex];
 					var parameterType = "";
 					var isCodeBody = false;
@@ -319,7 +325,12 @@ function doAddParameter_Core(lines, nameList) {
 							}
 							insertText += ", " + parameterTextDst;
 						}
-						n = bracketInfo.start + bracketInfo.len - 1;
+						if (curParameterIndex>0) {
+							n = bracketInfo.parameterBorders[curParameterIndex-1];
+						} else {
+							n = bracketInfo.start + 1;
+							insertText = insertText.substring(2) + ", ";
+						}
 						dst = line.substring(0, n) + insertText + line.substring(n);
 					}
 				}
