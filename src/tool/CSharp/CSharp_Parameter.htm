@@ -19,16 +19,23 @@
 </span>
 &nbsp; <input type="checkbox" id="chkApplyCode" name="chkApplyCode" value="1" checked />Apply to body code
 <br />
-<input type="button" title="Add parameter(增加参数)" value="Add parameter" onclick="doAddParameter();" />
-&nbsp; Parameter names <input id="txtNames" type="text" size="24" value="args1, args2" />
+<p><input type="button" title="Add parameter(增加参数)" value="Add parameter" onclick="doAddParameter();" />
+&nbsp; Parameter names: <input id="txtNames" type="text" size="24" value="args1, args2" />
 &nbsp; <input type="button" title="Paste do - Add parameter(粘贴并执行)" value="Paste do" onclick="doAddParameterPaste();" />
-<br />
+</p>
+<p style="display:none">
 <input type="button" title="Remove parameter(移除参数)" value="Remove parameter" onclick="doRemoveParameter();" />
-&nbsp; Parameter index <input id="txtParameterIndex" type="text" size="3" value="-1" />
+&nbsp; Parameter index: <input id="txtParameterIndex" type="text" size="3" value="-1" />
 &nbsp; (-1表示倒数第1项)
 &nbsp; <input type="button" title="Paste do - Remove parameter(粘贴并执行)" value="Paste do" onclick="doRemoveParameterPaste();" />
+</p>
+<p><input type="button" title="Duplication genericity parameter(复制泛型参数)" value="Duplication genericity parameter" onclick="doDuplicationGenericityParameter();" />
+&nbsp; Sample type:<input id="txtSampleType" type="text" size="15" value="Vector&lt;int&gt;" />
+&nbsp; <input type="button" title="Paste do - Remove parameter(粘贴并执行)" value="Paste do" onclick="doDuplicationGenericityParameterPaste();" />
 <br />
-<br />
+&nbsp; Sub types:<input id="txtSubTypes" type="text" size="60" value="float,double,sbyte,byte,short,ushort,int,uint,long,ulong" />
+&nbsp; <input type="button" title="Reset - Sub types(重置子类型)" value="Reset" onclick="doSubTypesReset();" />
+</p>
 <div>
 	<div style="display:inline-block; width:45%">
 		Source:<br>
@@ -413,10 +420,176 @@ function doRemoveParameterPaste() {
 	pasteAndRun(doRemoveParameter);
 }
 
-/** do RemoveParameter.
+/** Do RemoveParameter.
  */
 function doRemoveParameter() {
 	throw new Error("RemoveParameter is under construction.");
+}
+
+function doDuplicationGenericityParameterPaste() {
+	pasteAndRun(doDuplicationGenericityParameter);
+}
+
+/** Do duplication genericity parameter(复制泛型参数).
+ */
+function doDuplicationGenericityParameter() {
+	const txtS = document.getElementById('txtS');
+	const txtD = document.getElementById('txtD');
+	var i;
+	try {
+		loadConfig();
+		var sampleType = document.getElementById('txtSampleType').value.trim() || "";
+		var subTypes = document.getElementById('txtSubTypes').value.trim() || "";
+		if (subTypes.length<=0) {
+			throw new Error('`Sub types` can not be empty!');
+		}
+		var subTypeList = [subTypes];
+		if (subTypes.indexOf(",")>=0) {
+			subTypeList = subTypes.split(",");
+			for(i=0; i<subTypeList.length; ++i) {
+				subTypeList[i] = ("" + subTypeList[i]).trim();
+			}
+		}
+		// do.
+		var lines = txtS.value.split("\n");
+		var lines2 = doDuplicationGenericityParameter_Core(lines, sampleType, subTypeList);
+		var dst = lines2.join("\n");
+		txtD.value = dst;
+	} catch(ex) {
+		console.log("Run AddParameter fail!", ex);
+		txtD.value = ex;
+	}
+}
+
+/** Do duplication genericity parameter - Core.
+ *
+ * @param {String[]}	lines	Source lines.
+ * @param {String}	sampleType	Genericity sample type.
+ * @param {String[]}	subTypeList	Genericity sub type list.
+ * @return {String[]}	Return destination lines.
+ */
+function doDuplicationGenericityParameter_Core(lines, sampleType, subTypeList) {
+	var rt = [];
+	var i,j;
+	if ((typeof(sampleType)!="string") || (sampleType.length<=0)) {
+		throw new Error("The `sampleType` can not be empty!");
+	}
+	var subTypeListCount = subTypeList.length;
+	if (subTypeListCount<=0) {
+		throw new Error("The `subTypeList.length`("+subTypeListCount+") must >0 !");
+	}
+	// split sampleType.
+	var sampleTypeSplits = splitGenericityType(sampleType, subTypeList);
+	console.log("sampleTypeSplits: ", sampleTypeSplits);
+	// body.
+	var sampleTypeComment = toCommentType(sampleType);
+	for(i=0; i<subTypeListCount; ++i) {
+		var dstType = sampleTypeSplits.join(subTypeList[i]);
+		var dstTypeComment = toCommentType(dstType);
+		var cnt = 0;
+		for(j=0; j<lines.length; ++j) {
+			var line = lines[j];
+			var n = line.indexOf(sampleType);
+			if (n>=0) {
+				var arrTemp = line.split(sampleType);
+				line = arrTemp.join(dstType);
+				++cnt;
+			}
+			if (m_ApplyComment) {
+				n = line.indexOf(sampleTypeComment);
+				if (n>=0) {
+					var arrTemp = line.split(sampleTypeComment);
+					line = arrTemp.join(dstTypeComment);
+				}
+			}
+			// done.
+			rt.push(line);
+		}
+		if (cnt<=0) {
+			throw new Error("Not found sampleType(`"+sampleType+"`)!");
+		}
+	}
+	return rt;
+}
+
+/** To comment type text.
+ *
+ * @param {String}	src	The source.
+ * @return {String[]}	Return result.
+ */
+function toCommentType(src) {
+	var rt = src.replace("<", "{")
+			.replace(">", "}");
+	return rt;
+}
+
+/** Split genericity type.
+ *
+ * @param {String}	sampleType	Genericity sample type.
+ * @param {String[]}	subTypeList	Genericity sub type list.
+ * @return {String[]}	Return split result.
+ */
+function splitGenericityType(sampleType, subTypeList) {
+	var rt = [];
+	var i,j;
+	if ((typeof(sampleType)!="string") || (sampleType.length<=0)) {
+		throw new Error("The `sampleType` can not be empty!");
+	}
+	var subTypeListCount = subTypeList.length;
+	if (subTypeListCount<=0) {
+		throw new Error("The `subTypeList.length`("+subTypeListCount+") must >0 !");
+	}
+	var srcSubType = "";
+	var arr = sampleType.split(/[<>]/);
+	for(i=0; i<arr.length; ++i) {
+		var src = arr[i].trim();
+		for(j=0; j<subTypeListCount; ++j) {
+			if (src == subTypeList[j]) {
+				srcSubType = src;
+				break;
+			}
+		}
+		if (srcSubType.length>0) break;
+	}
+	if (srcSubType.length<=0) {
+		// Not found.
+		if (arr.length==3) {
+			rt = [arr[0]+"<", ">"+arr[2]];
+		} else {
+			throw new Error("The `sampleType`("+sampleType+") is not genericity type!");
+		}
+		return rt;
+	}
+	// Is found.
+	var idx = 0;
+	var lastText = "";
+	for(i=0; i<arr.length; ++i) {
+		var idxNext = idx + arr[i].length;
+		if (idxNext<sampleType.length) {
+			++idxNext; // add '<' or '>'
+		}
+		var src = arr[i].trim();
+		var srcMatch = (src == srcSubType);
+		if (srcMatch) {
+			var n = sampleType.indexOf(srcSubType, idx);
+			lastText += sampleType.substring(idx, n);
+			rt.push(lastText);
+			lastText = sampleType.substring(n+srcSubType.length, idxNext);
+		} else {
+			lastText += sampleType.substring(idx, idxNext);
+		}
+		// next.
+		idx = idxNext;
+	}
+	if (lastText.length>0) {
+		rt.push(lastText);
+	}
+	return rt;
+}
+
+function doSubTypesReset() {
+	const txtSubTypes = document.getElementById('txtSubTypes');
+	txtSubTypes.value = "float,double,sbyte,byte,short,ushort,int,uint,long,ulong";
 }
 
 /** 初始化. */
