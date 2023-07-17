@@ -5,7 +5,8 @@
 var ExportFormat = {
 	FORMAT_JSON: 0,
 	FORMAT_TAB: 1,
-	FORMAT_MARKDOWN: 2
+	FORMAT_COMMA: 2,
+	FORMAT_MARKDOWN: 3
 };
 
 
@@ -441,14 +442,69 @@ function benchmarkGroup(benchmarkData) {
 	return benchmarkGroupData;
 }
 
-/** Benchmark - Fromat group.
+/** Benchmark - Format group - Separated.
  *
  * @param {BenchmarkGroupData}	benchmarkGroupData	The benchmark group data.
  * @param {Number}	exportFormat	The exportFormat. e.g. ExportFormat.FORMAT_TAB.
  * @return {String}	Return destination string.
  */
-function benchmarkGroupFromat(benchmarkGroupData, exportFormat) {
-	var rt = JSON.stringify(benchmarkGroupData);
+function benchmarkGroupFormat_Separated(benchmarkGroupData, exportFormat) {
+	var rt;
+	var rtList = [];
+	var separatedChar = "\t";
+	if (ExportFormat.FORMAT_COMMA == exportFormat) separatedChar = ",";
+	var dataPlatform;
+	var dataClass;
+	var dataRow;
+	var fieldNames;
+	var line;
+	var i, j, k, m;
+	for(i=0; i<benchmarkGroupData.list.length; ++i) {
+		dataPlatform = benchmarkGroupData.list[i];
+		fieldNames = dataPlatform.fieldNames;
+		rtList.push("# " + dataPlatform.title);
+		// Header.
+		line = "Class" + separatedChar + "Name";
+		for(j=0; j<fieldNames.length; ++j) {
+			var fieldName = fieldNames[j];
+			line += separatedChar + fieldName;
+		}
+		rtList.push(line);
+		// Row.
+		for(j=0; j<dataPlatform.list.length; ++j) {
+			dataClass = dataPlatform.list[j];
+			for(k=0; k<dataClass.list.length; ++k) {
+				dataRow = dataClass.list[k];
+				line = dataClass.title + separatedChar + dataRow.title;
+				for(m=0; m<fieldNames.length; ++m) {
+					var v = dataRow.fields[m];
+					line += separatedChar + v;
+				}
+				rtList.push(line);
+			}
+		} // for(j=0; j<dataPlatform.list.length; ++j)
+		rtList.push("");
+	} // for(i=0; i<benchmarkGroupData.list.length; ++i)
+	rt = rtList.join("\n");
+	return rt;
+}
+
+/** Benchmark - Format group.
+ *
+ * @param {BenchmarkGroupData}	benchmarkGroupData	The benchmark group data.
+ * @param {Number}	exportFormat	The exportFormat. e.g. ExportFormat.FORMAT_TAB.
+ * @return {String}	Return destination string.
+ */
+function benchmarkGroupFormat(benchmarkGroupData, exportFormat) {
+	var rt;
+	switch(exportFormat) {
+		case ExportFormat.FORMAT_TAB:
+		case ExportFormat.FORMAT_COMMA:
+			rt = benchmarkGroupFormat_Separated(benchmarkGroupData);
+			break;
+		default:
+			rt = JSON.stringify(benchmarkGroupData);
+	}
 	return rt;
 }
 
@@ -485,7 +541,7 @@ function doGroup() {
 function doGroup_Core(lines) {
 	var benchmarkData = benchmarkParse(lines);
 	var benchmarkGroupData = benchmarkGroup(benchmarkData);
-	var rt = benchmarkGroupFromat(benchmarkGroupData, m_exportFormat);
+	var rt = benchmarkGroupFormat(benchmarkGroupData, m_exportFormat);
 	return rt;
 }
 
