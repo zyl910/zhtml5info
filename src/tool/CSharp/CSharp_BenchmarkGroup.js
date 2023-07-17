@@ -87,6 +87,17 @@ function BenchmarkDataRow(config) {
 	this.fields = config.fields || [];
 }
 
+/** @class BenchmarkGroupDataClass
+ * Benchmark group data - Class (基准测试分组信息-类).
+ */
+function BenchmarkGroupDataClass(config) {
+	config = config || {};
+	/** @property {String} 标题. */
+	this.title = config.title || "";
+	/** @property {BenchmarkDataRow[]} 行列表. */
+	this.list = config.list || [];
+}
+
 /** @class BenchmarkGroupDataPlatform
  * Benchmark group data - Platform (基准测试分组信息-平台).
  */
@@ -98,7 +109,7 @@ function BenchmarkGroupDataPlatform(config) {
 	this.raw = config.raw || null;
 	/** @property {String[]} 字段名列表. */
 	this.fieldNames = config.fieldNames || [];
-	/** @property {BenchmarkDataRow[]} 行列表. */
+	/** @property {BenchmarkGroupDataClass[]} 类列表. */
 	this.list = config.list || [];
 }
 
@@ -347,11 +358,66 @@ function benchmarkParse(lines) {
 /** Benchmark - Group - Platform.
  *
  * @param {BenchmarkDataPlatform}	benchmarkDataPlatform	The BenchmarkDataPlatform data.
+ * @param {Boolean}	fillRaw	Is fill `raw` field.
  * @return {BenchmarkGroupDataPlatform}	Return benchmark group data.
  */
-function benchmarkGroup_Platform(benchmarkDataPlatform) {
+function benchmarkGroup_Platform(benchmarkDataPlatform, fillRaw) {
 	if (null==benchmarkDataPlatform) throw new Error("The benchmarkDataPlatform is null!");
-	return benchmarkDataPlatform;
+	var i, j, k;
+	var dataDotNet;
+	var dataClass;
+	var dataGroupClass;
+	var dataRecord = null;
+	var dataRow = null;
+	var dataPlatform = new BenchmarkGroupDataPlatform();
+	dataPlatform.title = benchmarkDataPlatform.title;
+	if (fillRaw) {
+		dataPlatform.raw = benchmarkDataPlatform;
+	}
+	// Make fieldNames.
+	var dataDotNetLast = null;
+	dataPlatform.fieldNames = [];
+	for(i=0; i<benchmarkDataPlatform.list.length; ++i) {
+		dataDotNet = benchmarkDataPlatform.list[i];
+		if (null==dataDotNet) throw new Error("Dotnet[" + i + "] is null!");
+		dataDotNetLast = dataDotNet;
+		dataPlatform.fieldNames.push(dataDotNet.title);
+	}
+	// Make class list.
+	if (null==dataDotNetLast) return dataPlatform;
+	var fieldNamesCount = dataPlatform.fieldNames.length;
+	for(i=0; i<dataDotNetLast.list.length; ++i) {
+		dataClass = dataDotNetLast.list[i];
+		if (null==dataClass) throw new Error("Class[" + i + "] of last Dotnet is null!");
+		dataGroupClass = new BenchmarkGroupDataClass();
+		dataGroupClass.title = dataClass.title;
+		for(j=0; j<dataClass.list.length; ++j) {
+			dataRecord = dataClass.list[j];
+			if (null==dataClass) throw new Error("`Class[" + i + "].list[" + j + "]` is null!");
+			dataRow = new BenchmarkDataRow();
+			dataRow.title = dataRecord.name;
+			while(dataRow.fields.length<fieldNamesCount) {
+				dataRow.fields.push("");
+			}
+			dataGroupClass.list.push(dataRow);
+		}
+		dataPlatform.list.push(dataGroupClass);
+	}
+	// Fill data.
+	for(i=0; i<benchmarkDataPlatform.list.length; ++i) {
+		dataDotNet = benchmarkDataPlatform.list[i];
+		for(j=0; j<dataDotNet.list.length; ++j) {
+			dataClass = dataDotNet.list[j];
+			var dataGroupClass = dataPlatform.list[j];
+			for(k=0; k<dataClass.list.length; ++k) {
+				dataRecord = dataClass.list[k];
+				dataRow = dataGroupClass.list[k];
+				var v = dataRecord.mops;
+				dataRow.fields[i] = v;
+			}
+		}
+	}
+	return dataPlatform;
 }
 
 /** Benchmark - Group.
@@ -361,13 +427,14 @@ function benchmarkGroup_Platform(benchmarkDataPlatform) {
  */
 function benchmarkGroup(benchmarkData) {
 	if (null==benchmarkData) throw new Error("The benchmarkData is null!");
+	var fillRaw = false;
 	var i;
 	var benchmarkGroupData = new BenchmarkGroupData();
 	benchmarkGroupData.title = benchmarkData.title;
 	for(i=0; i<benchmarkData.list.length; ++i) {
 		var benchmarkDataPlatform = benchmarkData.list[i];
 		if (null==benchmarkDataPlatform) continue;
-		var dataPlatform = benchmarkGroup_Platform(benchmarkDataPlatform);
+		var dataPlatform = benchmarkGroup_Platform(benchmarkDataPlatform, fillRaw);
 		if (null==dataPlatform) continue;
 		benchmarkGroupData.list.push(dataPlatform);
 	}
