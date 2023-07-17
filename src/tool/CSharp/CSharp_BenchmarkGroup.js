@@ -76,6 +76,43 @@ function BenchmarkData(config) {
 	this.list = config.list || [];
 }
 
+/** @class BenchmarkDataRow
+ * Benchmark data - Row (基准测试信息-行).
+ */
+function BenchmarkDataRow(config) {
+	config = config || {};
+	/** @property {String} 标题. */
+	this.title = config.title || "";
+	/** @property {String[]} 字段值列表. */
+	this.fields = config.fields || [];
+}
+
+/** @class BenchmarkGroupDataPlatform
+ * Benchmark group data - Platform (基准测试分组信息-平台).
+ */
+function BenchmarkGroupDataPlatform(config) {
+	config = config || {};
+	/** @property {String} 标题. */
+	this.title = config.title || "";
+	/** @property {BenchmarkDataPlatform} 原始数据. */
+	this.raw = config.raw || null;
+	/** @property {String[]} 字段名列表. */
+	this.fieldNames = config.fieldNames || [];
+	/** @property {BenchmarkDataRow[]} 行列表. */
+	this.list = config.list || [];
+}
+
+/** @class BenchmarkGroupData
+ * Benchmark group data (基准测试分组信息).
+ */
+function BenchmarkGroupData(config) {
+	config = config || {};
+	/** @property {String} 标题. */
+	this.title = config.title || "";
+	/** @property {BenchmarkGroupDataPlatform[]} 平台列表. */
+	this.list = config.list || [];
+}
+
 const clipboardObj = navigator.clipboard;
 var m_exportFormat = ExportFormat.FORMAT_TAB;
 
@@ -307,13 +344,34 @@ function benchmarkParse(lines) {
 	return benchmarkData;
 }
 
+/** Benchmark - Group - Platform.
+ *
+ * @param {BenchmarkDataPlatform}	benchmarkDataPlatform	The BenchmarkDataPlatform data.
+ * @return {BenchmarkGroupDataPlatform}	Return benchmark group data.
+ */
+function benchmarkGroup_Platform(benchmarkDataPlatform) {
+	if (null==benchmarkDataPlatform) throw new Error("The benchmarkDataPlatform is null!");
+	return benchmarkDataPlatform;
+}
+
 /** Benchmark - Group.
  *
  * @param {BenchmarkData}	benchmarkData	The benchmark data.
  * @return {BenchmarkGroupData}	Return benchmark group data.
  */
 function benchmarkGroup(benchmarkData) {
-	return benchmarkData;
+	if (null==benchmarkData) throw new Error("The benchmarkData is null!");
+	var i;
+	var benchmarkGroupData = new BenchmarkGroupData();
+	benchmarkGroupData.title = benchmarkData.title;
+	for(i=0; i<benchmarkData.list.length; ++i) {
+		var benchmarkDataPlatform = benchmarkData.list[i];
+		if (null==benchmarkDataPlatform) continue;
+		var dataPlatform = benchmarkGroup_Platform(benchmarkDataPlatform);
+		if (null==dataPlatform) continue;
+		benchmarkGroupData.list.push(dataPlatform);
+	}
+	return benchmarkGroupData;
 }
 
 /** Benchmark - Fromat group.
