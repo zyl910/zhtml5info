@@ -191,7 +191,7 @@ function benchmarkParse(lines) {
 	var dataClass = null;
 	var dataRecord = null;
 	var line, src;
-	var n, newLevel;
+	var n, newLevel, lineLen;
 	var i, j;
 	for(i=0; i<lines.length; ++i) {
 		line = lines[i];
@@ -228,8 +228,9 @@ function benchmarkParse(lines) {
 				parseStatus = ParseStatus.CODE_END;
 			}
 		} else {
+			var ch = line.charAt(0);
 			if (ParseStatus.CODE_BEGIN > parseStatus) {
-				if (line.charAt(0) == POUND_SIGN) {
+				if (ch == POUND_SIGN) {
 					parseStatus = ParseStatus.TITLE;
 					newLevel = 0;
 					for(j=0; j<line.length; ++j) {
@@ -255,12 +256,33 @@ function benchmarkParse(lines) {
 						dataPlatform = null;
 					}
 				}
-			} else if (ParseStatus.CODE_BEGIN == parseStatus) {
-			} else if (ParseStatus.CLASS == parseStatus) {
-			} else if (ParseStatus.RECORD == parseStatus) {
-			}
-		}
-	}
+			} else {
+				var isClass = false;
+				lineLen = line.length;
+				if ('[' == ch) {
+					if (']' == line.charAt(lineLen-1)) {
+						isClass = true;
+					}
+				}
+				if (isClass) {
+					if (parseStatus != ParseStatus.CLASS) {
+						//
+					}
+					parseStatus = ParseStatus.CLASS;
+					src = line.substring(1, lineLen-1).trim();
+					dataClass = new BenchmarkDataClass();
+					dataClass.titleFull = src;
+					n = src.indexOf('(');
+					if (n>0) {
+						src = src.substring(0, n).trim();
+					}
+					dataClass.title = src;
+					dataDotNet.list.push(dataClass);
+				} else {
+				} // isClass
+			} // ParseStatus.CODE_BEGIN > parseStatus
+		} // 0==n
+	} // for(i=0; i<lines.length; ++i)
 	return benchmarkData;
 }
 
