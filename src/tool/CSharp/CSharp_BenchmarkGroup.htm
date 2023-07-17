@@ -1,0 +1,36 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<title>CSharp_BenchmarkGroup (C#评测结果分组工具)</title>
+</head>
+<body>
+<h1>CSharp_BenchmarkGroup (C#评测结果分组工具)</h1>
+<p>用于对评测结果进行分组.</p>
+
+<p><span title="导出类型">Export format</span>: <select id="cboExportFormat"">
+		<option value="0">Json</option>
+		<option value="1" selected="selected">Tab-Separated</option>
+		<option value="2">Markdown</option>
+	</select>
+&nbsp; <input type="button" title="Clear source(清空源文本框)" value="Clear source" onclick="clearSource();" />
+&nbsp; <input type="button" title="Copy destination(复制目标文本框)" value="Copy destination" onclick="clipboardCopyDestination();" />
+</p>
+<p><input type="button" title="Group(进行分组)" value="Group" onclick="doGroup();" />
+&nbsp; <input type="button" title="Paste do - Group(粘贴并执行)" value="Paste do" onclick="doGroupPaste();" />
+</p>
+<div>
+	<div style="display:inline-block; width:45%">
+		Source:<br>
+		<textarea id="txtS" rows="30" style="width: 100%"></textarea>
+	</div>
+	&nbsp; &nbsp; 
+	<div style="display:inline-block; width:45%">
+		Destination:<br>
+		<textarea id="txtD" rows="30" style="width: 100%"></textarea>
+	</div>
+</div>
+
+<script type="text/javascript" src="CSharp_BenchmarkGroup.js"></script>
+</body>
+</html>
