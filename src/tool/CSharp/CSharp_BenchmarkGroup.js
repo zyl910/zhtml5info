@@ -179,8 +179,7 @@ function benchmarkParse(lines) {
 		TITLE: 1,
 		CODE_END: 2,
 		CODE_BEGIN: 3,
-		CLASS: 4,
-		RECORD: 5
+		CLASS: 4
 	};
 	var parseStatus = ParseStatus.INIT;
 	var titleArray = []; // Item `x` is title `x+1`.
@@ -278,7 +277,29 @@ function benchmarkParse(lines) {
 					}
 					dataClass.title = src;
 					dataDotNet.list.push(dataClass);
-				} else {
+				} else if (ParseStatus.CLASS == parseStatus) {
+					var isRecord = false;
+					if (line.length>0) {
+						isRecord = true;
+						if (isRecord && '#'==ch) isRecord=false;
+						if (isRecord && '-'==ch) isRecord=false;
+						if (isRecord && 0==line.indexOf("NAME")) isRecord=false;
+						if (isRecord && 0==line.indexOf("Check-")) isRecord=false;
+					}
+					if (isRecord) {
+						var parts = line.split("\t");
+						if (null!=parts && parts.length>=2) {
+							while(parts.length<4) {
+								parts.push("");
+							}
+							dataRecord = new BenchmarkDataRecord();
+							dataRecord.name = parts[0];
+							dataRecord.us = parts[1];
+							dataRecord.mops = parts[2];
+							dataRecord.scale = parts[3];
+							dataClass.list.push(dataRecord);
+						}
+					} // isRecord.
 				} // isClass
 			} // ParseStatus.CODE_BEGIN > parseStatus
 		} // 0==n
