@@ -235,6 +235,17 @@ function findByTitle(arr, title, def) {
 	return def;
 }
 
+/** Make repeat string.
+ *
+ * @param {String}	src	Source string.
+ * @param {Object}	count The count.
+ * @return {String}	 returns a new string which contains the specified number of copies of the string.
+ */
+function repeatString(src, count) {
+	if (count<=0) return "";
+	return src.repeat(count);
+}
+
 /** Benchmark - Parse.
  *
  * @param {String[]}	lines	Source lines.
@@ -513,6 +524,104 @@ function benchmarkGroupFormat_Separated(benchmarkGroupData, exportFormat) {
 	return rt;
 }
 
+/** Benchmark - Format group - Markdown.
+ *
+ * @param {BenchmarkGroupData}	benchmarkGroupData	The benchmark group data.
+ * @param {Number}	exportFormat	The exportFormat. e.g. ExportFormat.FORMAT_TAB.
+ * @return {String}	Return destination string.
+ */
+function benchmarkGroupFormat_Markdown(benchmarkGroupData, exportFormat) {
+	var rt;
+	var rtList = [];
+	var itemCommons = ["Class", "Name"];
+	var itemCountCommons = itemCommons.length;
+	var itemRow = new Array(itemCountCommons);
+	var dataPlatform;
+	var dataClass;
+	var dataRow;
+	var fieldNames;
+	var fieldName;
+	var itemCount; // Class, Name, fieldNames[0]...
+	var itemWidths;
+	var itemWidth;
+	var line, line2;
+	var i, j, k, m;
+	var n;
+	var v;
+	for(i=0; i<benchmarkGroupData.list.length; ++i) {
+		dataPlatform = benchmarkGroupData.list[i];
+		fieldNames = dataPlatform.fieldNames;
+		rtList.push("### " + dataPlatform.title);
+		// Fill itemWidths.
+		itemCount = itemCountCommons + fieldNames.length;
+		itemWidths = new Array(itemCount);
+		for(j=0; j<itemCommons.length; ++j) {
+			fieldName = itemCommons[j];
+			itemWidths[j] = fieldName.length;
+		}
+		for(j=0; j<fieldNames.length; ++j) {
+			fieldName = fieldNames[j];
+			itemWidths[itemCountCommons + j] = fieldName.length;
+		}
+		for(j=0; j<dataPlatform.list.length; ++j) {
+			dataClass = dataPlatform.list[j];
+			n = dataClass.title.length;
+			if (itemWidths[0]<n) itemWidths[0]=n;
+			for(k=0; k<dataClass.list.length; ++k) {
+				dataRow = dataClass.list[k];
+				n = dataRow.title.length;
+				if (itemWidths[1]<n) itemWidths[1]=n;
+				for(m=0; m<fieldNames.length; ++m) {
+					v = dataRow.fields[m];
+					n = v.length;
+					if (itemWidths[itemCountCommons+m]<n) itemWidths[itemCountCommons+m]=n;
+				}
+			}
+		} // for(j=0; j<dataPlatform.list.length; ++j)
+		// Header.
+		line = "|";
+		line2 = "|";
+		for(j=0; j<itemCommons.length; ++j) {
+			fieldName = itemCommons[j];
+			itemWidth = itemWidths[j];
+			line += " " + fieldName + repeatString(" ", itemWidth-fieldName.length) + " |";
+			line2 += " :" + repeatString("-", itemWidth-1) + " |";
+		}
+		for(j=0; j<fieldNames.length; ++j) {
+			fieldName = fieldNames[j];
+			itemWidth = itemWidths[itemCountCommons+j];
+			line += " " + repeatString(" ", itemWidth-fieldName.length) + fieldName + " |";
+			line2 += " " + repeatString("-", itemWidth-1) + ": |";
+		}
+		rtList.push(line);
+		rtList.push(line2);
+		// Row.
+		for(j=0; j<dataPlatform.list.length; ++j) {
+			dataClass = dataPlatform.list[j];
+			itemRow[0] = dataClass.title;
+			for(k=0; k<dataClass.list.length; ++k) {
+				dataRow = dataClass.list[k];
+				itemRow[1] = dataRow.title;
+				line = "|";
+				for(m=0; m<itemRow.length; ++m) {
+					v = itemRow[m];
+					itemWidth = itemWidths[m];
+					line += " " + v + repeatString(" ", itemWidth-v.length) + " |";
+				}
+				for(m=0; m<fieldNames.length; ++m) {
+					v = dataRow.fields[m];
+					itemWidth = itemWidths[itemCountCommons+m];
+					line += " " + repeatString(" ", itemWidth-v.length) + v + " |";
+				}
+				rtList.push(line);
+			}
+		} // for(j=0; j<dataPlatform.list.length; ++j)
+		rtList.push("");
+	} // for(i=0; i<benchmarkGroupData.list.length; ++i)
+	rt = rtList.join("\n");
+	return rt;
+}
+
 /** Benchmark - Format group.
  *
  * @param {BenchmarkGroupData}	benchmarkGroupData	The benchmark group data.
@@ -525,6 +634,9 @@ function benchmarkGroupFormat(benchmarkGroupData, exportFormat) {
 		case ExportFormat.FORMAT_TAB:
 		case ExportFormat.FORMAT_COMMA:
 			rt = benchmarkGroupFormat_Separated(benchmarkGroupData, exportFormat);
+			break;
+		case ExportFormat.FORMAT_MARKDOWN:
+			rt = benchmarkGroupFormat_Markdown(benchmarkGroupData, exportFormat);
 			break;
 		default:
 			rt = JSON.stringify(benchmarkGroupData);
