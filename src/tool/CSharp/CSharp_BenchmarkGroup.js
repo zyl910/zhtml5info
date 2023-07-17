@@ -215,6 +215,26 @@ function makeTitle(titleArray, levelBegin, levelEnd) {
 	return title;
 }
 
+/** Find by title.
+ *
+ * @param {Object[]}	arr	Source array.
+ * @param {String[]}	title	The title.
+ * @param {Object}	def Default value.
+ * @return {Object}	Return found object, else is def.
+ */
+function findByTitle(arr, title, def) {
+	var i;
+	var p;
+	for(i=0; i<arr.length; ++i) {
+		p = arr[i];
+		if (!p) continue;
+		if (title == p.title) {
+			return p;
+		}
+	}
+	return def;
+}
+
 /** Benchmark - Parse.
  *
  * @param {String[]}	lines	Source lines.
@@ -409,15 +429,19 @@ function benchmarkGroup_Platform(benchmarkDataPlatform, fillRaw) {
 		dataDotNet = benchmarkDataPlatform.list[i];
 		for(j=0; j<dataDotNet.list.length; ++j) {
 			dataClass = dataDotNet.list[j];
-			var dataGroupClass = dataPlatform.list[j];
-			for(k=0; k<dataClass.list.length; ++k) {
-				dataRecord = dataClass.list[k];
-				dataRow = dataGroupClass.list[k];
-				var v = dataRecord.mops;
-				dataRow.fields[i] = v;
+			dataGroupClass = findByTitle(dataPlatform.list, dataClass.title, null);
+			if (null!=dataGroupClass) {
+				for(k=0; k<dataClass.list.length; ++k) {
+					dataRecord = dataClass.list[k];
+					dataRow = findByTitle(dataGroupClass.list, dataRecord.name, null);
+					if (null!=dataRow) {
+						var v = dataRecord.mops;
+						dataRow.fields[i] = v;
+					}
+				} // for(k=0; k<dataClass.list.length; ++k)
 			}
-		}
-	}
+		} // for(j=0; j<dataDotNet.list.length; ++j)
+	} // for(i=0; i<benchmarkDataPlatform.list.length; ++i)
 	return dataPlatform;
 }
 
@@ -500,7 +524,7 @@ function benchmarkGroupFormat(benchmarkGroupData, exportFormat) {
 	switch(exportFormat) {
 		case ExportFormat.FORMAT_TAB:
 		case ExportFormat.FORMAT_COMMA:
-			rt = benchmarkGroupFormat_Separated(benchmarkGroupData);
+			rt = benchmarkGroupFormat_Separated(benchmarkGroupData, exportFormat);
 			break;
 		default:
 			rt = JSON.stringify(benchmarkGroupData);
