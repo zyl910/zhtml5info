@@ -533,7 +533,7 @@ function benchmarkGroupFormat_Separated(benchmarkGroupData, exportFormat) {
 function benchmarkGroupFormat_Markdown(benchmarkGroupData, exportFormat) {
 	var rt;
 	var rtList = [];
-	var itemCommons = ["Class", "Name"];
+	var itemCommons = ["Class", "Method"];
 	var itemCountCommons = itemCommons.length;
 	var itemRow = new Array(itemCountCommons);
 	var dataPlatform;
