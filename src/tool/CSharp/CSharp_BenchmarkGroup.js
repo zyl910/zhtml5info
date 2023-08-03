@@ -499,7 +499,7 @@ function benchmarkGroupFormat_Separated(benchmarkGroupData, exportFormat) {
 		fieldNames = dataPlatform.fieldNames;
 		rtList.push("# " + dataPlatform.title);
 		// Header.
-		line = "Class" + separatedChar + "Name";
+		line = "Type" + separatedChar + "Name";
 		for(j=0; j<fieldNames.length; ++j) {
 			var fieldName = fieldNames[j];
 			line += separatedChar + fieldName;
@@ -533,7 +533,7 @@ function benchmarkGroupFormat_Separated(benchmarkGroupData, exportFormat) {
 function benchmarkGroupFormat_Markdown(benchmarkGroupData, exportFormat) {
 	var rt;
 	var rtList = [];
-	var itemCommons = ["Class", "Method"];
+	var itemCommons = ["Type", "Method"];
 	var itemCountCommons = itemCommons.length;
 	var itemRow = new Array(itemCountCommons);
 	var dataPlatform;
