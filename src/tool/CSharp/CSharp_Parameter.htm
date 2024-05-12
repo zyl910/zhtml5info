@@ -23,11 +23,11 @@
 &nbsp; Parameter names: <input id="txtNames" type="text" size="24" value="args1, args2" />
 &nbsp; <input type="button" title="Paste do - Add parameter(粘贴并执行)" value="Paste do" onclick="doAddParameterPaste();" />
 </p>
-<p style="display:none">
-<input type="button" title="Remove parameter(移除参数)" value="Remove parameter" onclick="doRemoveParameter();" />
+<p>
+<input type="button" title="Remove parameter(移除参数)" value="Remove parameter" onclick="doRemoveParameter();" style="display:none" />
 &nbsp; Parameter index: <input id="txtParameterIndex" type="text" size="3" value="-1" />
 &nbsp; (-1表示倒数第1项)
-&nbsp; <input type="button" title="Paste do - Remove parameter(粘贴并执行)" value="Paste do" onclick="doRemoveParameterPaste();" />
+&nbsp; <input type="button" title="Paste do - Remove parameter(粘贴并执行)" value="Paste do" onclick="doRemoveParameterPaste();" style="display:none" />
 </p>
 <p><input type="button" title="Duplication genericity parameter(复制泛型参数)" value="Duplication genericity parameter" onclick="doDuplicationGenericityParameter();" />
 &nbsp; Sample type:<input id="txtSampleType" type="text" size="15" value="Vector&lt;int&gt;" />
