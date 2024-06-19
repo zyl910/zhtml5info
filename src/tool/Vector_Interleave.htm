@@ -1,0 +1,304 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<title>Vector_Interleave (向量交织计算器)</title>
+</head>
+<body>
+<h1>Vector_Interleave (向量交织计算器)</h1>
+<p>计算不同尺寸的向量数据的交织运算效果.</p>
+
+<input type="button" title="Do(执行计算)" value="Do" onclick="doMake();" />
+&nbsp; <span title="源数据的模式">Source Mode</span>: <select id="cboMode"">
+		<option value="0">Uninterleave SoA (未交织的结构体数组)</option>
+		<option value="1" selected="selected">Interleaved AoS (已交织的数组结构体)</option>
+	</select>
+&nbsp; <span title="操作模式">Op Mode</span>: <select id="cboOpMode"">
+		<option value="0">UnZip: De-Interleave (解交织)</option>
+		<option value="1" selected="selected">Zip: Interleave (交织)</option>
+	</select>
+&nbsp; <span title="向量尺寸">VectorSize</span>: <select id="cboVectorSizeMode"">
+		<option value="0" selected="selected">128bit</option>
+		<option value="1">256bit</option>
+		<option value="2">512bit</option>
+	</select>
+&nbsp; <span title="元素尺寸">ElementSize</span>: <select id="cboElementSizeMode"">
+		<option value="0">8-bit (Byte)</option>
+		<option value="1">16-bit (Int16)</option>
+		<option value="2" selected="selected">32-bit (Int32)</option>
+		<option value="3">64-bit (Int64)</option>
+	</select>
+&nbsp; <span title="分量个数">ComponentSize</span>: <select id="cboComponentSize"">
+		<option value="2">2</option>
+		<option value="3" selected="selected">3</option>
+		<option value="4">4</option>
+		<option value="5">5</option>
+		<option value="6">6</option>
+		<option value="7">7</option>
+		<option value="8">8</option>
+	</select>
+&nbsp; <span title="2倍数据"><input type="checkbox" id="chkData2x" name="chkData2x" checked />Data2x</span>
+&nbsp; <span title="在每128位的边界内处理. 类似AVX系列指令集的UNPACK指令."><input type="checkbox" id="chkEach128" name="chkEach128" value="0" />Each128</span>
+&nbsp; <span title="在每128位的边界内处理之前, 按128位边界重排数据."><input type="checkbox" id="chkEach128FixBefore" name="chkEach128FixBefore" value="0" />Each128FixBefore</span>
+&nbsp; <span title="循环次数">CycleCount: <input id="txtCycleCount" type="text" size="3" value="20" /></span>
+<br />
+<br />
+<textarea id="txtD" rows="30" style="width: 100%"></textarea>
+
+
+<script type="text/javascript">
+const clipboardObj = navigator.clipboard;
+var componentNames = ["x", "y", "z", "w", "u", "v", "s", "t"];
+var reduceExclude = "";
+
+function getNumberLetter(index, isSimple) {
+	const Letter_Count = 26;
+	var rt = "";
+	var m = parseInt(index) - 1;
+	if (m >= 0) {
+		if (isSimple) {
+			m = m % 2;
+		}
+		var n = parseInt(m / Letter_Count);
+		var k = m - (n * Letter_Count);
+		rt = String.fromCharCode('a'.charCodeAt() + k);
+		if (n>0) {
+			rt = String.fromCharCode('a'.charCodeAt() + n) + rt;
+		}
+	}
+	return rt;
+}
+
+function makeInterleave(mode, opMode, vectorSizeMode, elementSizeMode, componentSize, isData2x, isEach128, isEach128FixBefore, cycleCount) {
+	const tab = '\t';
+	const isShowHeader = true;
+	const isSimple = true;
+	var rt = [];
+	var vectorSizeByte = 16 << vectorSizeMode;
+	var vectorSize = vectorSizeByte*8;
+	var elementSizeByte = 1 << elementSizeMode;
+	var elementSize = elementSizeByte*8;
+	var line;
+	var title, name, prefix;
+	line = `// vectorSize=${vectorSize}, elementSize=${elementSize}, componentSize=${componentSize}, isData2x=${isData2x}, isEach128=${isEach128}, isEach128FixBefore=${isEach128FixBefore}, cycleCount=${cycleCount}`;
+	rt.push(line);
+	try {
+		// Check.
+		if (vectorSizeMode <= 0) isEach128 = false;
+		if (0 != (componentSize&1) && !isData2x) {
+			line = `The componentSize(${componentSize}) is is odd. The 'Data2x' must be checked!`;
+			rt.push(line);
+			return rt;
+		}
+		var vectorTotal = componentSize;
+		if (isData2x) vectorTotal *= 2;
+		var elementCount = vectorSizeByte / elementSizeByte;
+		if (elementCount < 1) {
+			line = `The value of elementCount(${elementCount}) is invalid!`;
+			rt.push(line);
+			return rt;
+		}
+		var elementTotal = elementCount * vectorTotal;
+		var byteTotal = elementTotal * elementSizeByte;
+		var groupCount = elementTotal / componentSize;
+		var laneCount = 1;
+		if (isEach128) {
+			laneCount = laneCount << vectorSizeMode;
+		}
+		var elementInLane = elementCount / laneCount;
+		var elementInLaneMid = elementInLane / 2;
+		line = `// vectorTotal=${vectorTotal}, elementCount=${elementCount}, elementTotal=${elementTotal}, byteTotal=${byteTotal}, groupCount=${groupCount}`;
+		if (isEach128) {
+			line += `, laneCount=${laneCount}, elementInLane=${elementInLane}`;
+		}
+		rt.push(line);
+		// The header.
+		if (isShowHeader) {
+			line = "Idx";
+			for(i=0; i<vectorTotal; ++i) {
+				prefix = getNumberLetter(1+i);
+				title = prefix + "Name";
+				line += tab + title;
+				for(j=0; j<elementCount; ++j) {
+					title = prefix + j;
+					line += tab + title;
+				}
+			}
+			rt.push(line);
+		}
+		// The Source.
+		var arrayData = new Array(elementTotal);
+		var i, j, k, l, idx;
+		if (0==mode) {
+			idx = 0;
+			for(i=0; i<componentSize; ++i) {
+				prefix = componentNames[i];
+				for(j=0; j<groupCount; ++j) {
+					var title = prefix + j;
+					arrayData[idx++] = title;
+				}
+			}
+			idx = 0;
+		} else {
+			idx = 0;
+			for(i=0; i<groupCount; ++i) {
+				for(j=0; j<componentSize; ++j) {
+					title = componentNames[j] + i;
+					arrayData[idx++] = title;
+				}
+			}
+		}
+		idx = 0;
+		line = "0";
+		for(i=0; i<vectorTotal; ++i) {
+			title = "data" + i;
+			line += "\t" + title;
+			for(j=0; j<elementCount; ++j) {
+				line += tab + arrayData[idx++];
+			}
+		}
+		rt.push(line);
+		// The isEach128FixBefore.
+		var arrayCur = arrayData;
+		var arrayLast = arrayCur;
+		var vectorTotalMid = vectorTotal / 2;
+		var index0, index1;
+		var index0InLane, index1InLane;
+		if (isEach128 && isEach128FixBefore) {
+			arrayCur = new Array(elementTotal);
+			idx = 0;
+			index0 = 0;
+			// 128位重排.
+			for(i=0; i<laneCount; ++i) {
+				for(j=0; j<vectorTotal; ++j) {
+					idx = elementCount*j + elementInLane*i;
+					for(k=0; k<elementInLane; ++k) {
+						arrayCur[idx++] = arrayLast[index0++];
+					}
+				}
+			}
+			// Show.
+			idx = 0;
+			line = "0b";
+			for(i=0; i<vectorTotal; ++i) {
+				title = "temp" + i;
+				line += "\t" + title;
+				for(j=0; j<elementCount; ++j) {
+					line += tab + arrayCur[idx++];
+				}
+			}
+			rt.push(line);
+		}
+		// The cycle.
+		var m;
+		for(var p=1; p<=cycleCount; ++p) {
+			line = "" + p;
+			prefix = getNumberLetter(p, isSimple);
+			// Unpack.
+			arrayLast = arrayCur;
+			arrayCur = new Array(elementTotal);
+			idx = 0;
+			index0 = 0;
+			index1 = elementTotal / 2;
+			if (isEach128) {
+				for(i=0; i<vectorTotalMid; ++i) {
+					for(j=0; j<2; ++j) {
+						// j: 0-Low, 1-High
+						for(k=0; k<laneCount; ++k) {
+							m = elementInLane*k + elementInLaneMid*j;
+							index0InLane = index0 + m;
+							index1InLane = index1 + m;
+							for(l=0; l<elementInLaneMid; ++l) {
+								if (1==opMode) {
+									// Zip
+									arrayCur[idx++] = arrayLast[index0InLane++];
+									arrayCur[idx++] = arrayLast[index1InLane++];
+								} else {
+									// Unzip
+									arrayCur[index0InLane++] = arrayLast[idx++];
+									arrayCur[index1InLane++] = arrayLast[idx++];
+								}
+							}
+						}
+					}
+					index0 += elementCount;
+					index1 += elementCount;
+				}
+			} else {
+				for(i=0; i<vectorTotalMid; ++i) {
+					for(j=0; j<elementCount; ++j) {
+						if (1==opMode) {
+							// Zip
+							arrayCur[idx++] = arrayLast[index0++];
+							arrayCur[idx++] = arrayLast[index1++];
+						} else {
+							// Unzip
+							arrayCur[index0++] = arrayLast[idx++];
+							arrayCur[index1++] = arrayLast[idx++];
+						}
+					}
+				}
+			}
+			// Show.
+			idx = 0;
+			for(i=0; i<vectorTotal; ++i) {
+				title = prefix + "_" + i;
+				line += tab + title;
+				for(j=0; j<elementCount; ++j) {
+					title = arrayCur[idx++];
+					line += tab + title;
+				}
+			}
+			rt.push(line);
+		}
+	} catch(ex) {
+		console.log("Do makeInterleave fail!", ex);
+		rt.push(ex.Message);
+
+	}
+	return rt;
+}
+
+function doMake() {
+	const cboMode = document.getElementById('cboMode');
+	const cboOpMode = document.getElementById('cboOpMode');
+	const cboVectorSizeMode = document.getElementById('cboVectorSizeMode');
+	const cboElementSizeMode = document.getElementById('cboElementSizeMode');
+	const cboComponentSize = document.getElementById('cboComponentSize');
+	const chkData2x = document.getElementById('chkData2x');
+	const chkEach128 = document.getElementById('chkEach128');
+	const chkEach128FixBefore = document.getElementById('chkEach128FixBefore');
+	const txtCycleCount = document.getElementById('txtCycleCount');
+	const txtD = document.getElementById('txtD');
+	var mode = cboMode.selectedIndex;
+	var opMode = cboOpMode.selectedIndex;
+	var vectorSizeMode = parseInt(cboVectorSizeMode.value);
+	var elementSizeMode = parseInt(cboElementSizeMode.value);
+	var componentSize = parseInt(cboComponentSize.value);
+	var isData2x = chkData2x.checked;
+	var isEach128 = chkEach128.checked;
+	var isEach128FixBefore = chkEach128FixBefore.checked;
+	var cycleCount = parseInt(txtCycleCount.value);
+	var dst = "";
+	try {
+		var lines2 = makeInterleave(mode, opMode, vectorSizeMode, elementSizeMode, componentSize, isData2x, isEach128, isEach128FixBefore, cycleCount);
+		dst = lines2.join("\n");
+	} catch(ex) {
+		console.log("Run makeInterleave fail!", ex);
+	}
+	txtD.value = dst;
+}
+
+
+/** 初始化. */
+function init() {
+	// compatibility.
+	if (!window.URL) {
+		window.URL = window.webkitURL || window.mozURL || window.msURL;
+	}
+}
+init();
+
+</script>
+</body>
+</html>
