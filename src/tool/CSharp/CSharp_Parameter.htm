@@ -31,10 +31,14 @@
 </p>
 <p><input type="button" title="Duplication genericity parameter(复制泛型参数)" value="Duplication genericity parameter" onclick="doDuplicationGenericityParameter();" />
 &nbsp; Sample type:<input id="txtSampleType" type="text" size="15" value="Vector&lt;int&gt;" />
-&nbsp; <input type="button" title="Paste do - Remove parameter(粘贴并执行)" value="Paste do" onclick="doDuplicationGenericityParameterPaste();" />
+&nbsp; <input type="button" title="Paste do - Duplication genericity parameter(粘贴并执行)" value="Paste do" onclick="doDuplicationGenericityParameterPaste();" />
 <br />
 &nbsp; Sub types:<input id="txtSubTypes" type="text" size="60" value="float,double,sbyte,byte,short,ushort,int,uint,long,ulong,ExInt128,ExUInt128" />
 &nbsp; <input type="button" title="Reset - Sub types(重置子类型)" value="Reset" onclick="doSubTypesReset();" />
+</p>
+<p><input type="button" title="Multiple replacement (多重替换)" value="Multiple replacement" onclick="doMultipleReplacement();" />
+&nbsp; Search:<input id="txtSearch" type="text" size="15" value="float" />
+&nbsp; <input type="button" title="Paste do - Multiple replacement(粘贴并执行)" value="Paste do" onclick="doMultipleReplacementPaste();" />
 </p>
 <div>
 	<div style="display:inline-block; width:45%">
@@ -456,7 +460,7 @@ function doDuplicationGenericityParameter() {
 		var dst = lines2.join("\n");
 		txtD.value = dst;
 	} catch(ex) {
-		console.log("Run AddParameter fail!", ex);
+		console.log("Run doDuplicationGenericityParameter fail!", ex);
 		txtD.value = ex;
 	}
 }
@@ -590,6 +594,48 @@ function splitGenericityType(sampleType, subTypeList) {
 function doSubTypesReset() {
 	const txtSubTypes = document.getElementById('txtSubTypes');
 	txtSubTypes.value = "float,double,sbyte,byte,short,ushort,int,uint,long,ulong";
+}
+
+function doMultipleReplacementPaste() {
+	pasteAndRun(doMultipleReplacement);
+}
+
+/** Multiple replacement (多重替换).
+ */
+function doMultipleReplacement() {
+	const txtS = document.getElementById('txtS');
+	const txtD = document.getElementById('txtD');
+	var i;
+	try {
+		loadConfig();
+		var search = document.getElementById('txtSearch').value.trim() || "";
+		if (search.length<=0) {
+			throw new Error('`The search` can not be empty!');
+		}
+		var subTypes = document.getElementById('txtSubTypes').value.trim() || "";
+		if (subTypes.length<=0) {
+			throw new Error('`Sub types` can not be empty!');
+		}
+		var subTypeList = [subTypes];
+		if (subTypes.indexOf(",")>=0) {
+			subTypeList = subTypes.split(",");
+			for(i=0; i<subTypeList.length; ++i) {
+				subTypeList[i] = ("" + subTypeList[i]).trim();
+			}
+		}
+		// do.
+		var src = txtS.value;
+		var dst = "";
+		for(i=0; i<subTypeList.length; ++i) {
+			var replaceWith = subTypeList[i];
+			var temp = src.replaceAll(search, replaceWith);
+			dst = dst + temp;
+		}
+		txtD.value = dst;
+	} catch(ex) {
+		console.log("Run doMultipleReplacement fail!", ex);
+		txtD.value = ex;
+	}
 }
 
 /** 初始化. */
