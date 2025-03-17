@@ -27,6 +27,7 @@
 		<option value="1">16-bit (Int16)</option>
 		<option value="2" selected="selected">32-bit (Int32)</option>
 		<option value="3">64-bit (Int64)</option>
+		<option value="4">128-bit (Int128)</option>
 	</select>
 &nbsp; <span title="分量个数">ComponentSize</span>: <select id="cboComponentSize"">
 		<option value="2">2</option>
@@ -86,9 +87,14 @@ function makeInterleave(mode, opMode, vectorSizeMode, elementSizeMode, component
 		// Check.
 		if (vectorSizeMode <= 0) isEach128 = false;
 		if (0 != (componentSize&1) && !isData2x) {
-			line = `The componentSize(${componentSize}) is is odd. The 'Data2x' must be checked!`;
+			line = `The componentSize(${componentSize}) is odd. The 'Data2x' must be checked!`;
 			rt.push(line);
 			return rt;
+		}
+		if (128==elementSize) {
+			isEach128 = false;
+			line = `// The elementSize is ${elementSize}. The 'Each128' must be unchecked!`;
+			rt.push(line);
 		}
 		var vectorTotal = componentSize;
 		if (isData2x) vectorTotal *= 2;
